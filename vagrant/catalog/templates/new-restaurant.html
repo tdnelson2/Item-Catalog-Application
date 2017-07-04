@@ -1,0 +1,10 @@
+
+{% extends "base.html" %}
+{% block content %}
+        <h2><i>{{subheader_text}}</i></h2>
+        <hr>
+        <form method="POST" enctype="multipart/form-data">
+                <input name="{{field_name}}" type="text" placeholder="{{placeholder_text}}" value="{{value}}">
+                <input name="{{button_name}}" type="submit" value="{{submit_btn_name}}">
+        </form>
+{% endblock %}
