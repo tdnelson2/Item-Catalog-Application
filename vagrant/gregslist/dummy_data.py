@@ -21,13 +21,15 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-# Create dummy user
+Create dummy user
 admin_user = User(name="Robo Admin", email="robo_admin@gregslist.com",
              picture='static/images/robo_admin.jpg')
 session.add(admin_user)
 session.commit()
 
 this_user = session.query(User).filter_by(email="robo_admin@gregslist.com").one()
+
+print this_user.name
 
 job_categories = ["finance", "office", "art", "science", "retail", "software", "media", "web", "government", "legal", "marketing", "service"]
 dummy_jobs = ["Bailiff", "Horticulturalist", "Radio presenter", "Dressmaker", "Social worker", "Anthropologist", "Car dealer", "Tour guide", "Speech therapist", "Bookmaker", "Comedian", "Garden designer", "Plumber"]
@@ -41,15 +43,17 @@ for job_cat in job_categories:
 
     new_cat = session.query(JobCategory).filter_by(name=job_cat).one()
 
+    print new_cat.name
+
     for job in dummy_jobs:
         title = job + " " + job_cat + " worker"
-        pay_in_cents = str(randint(800,10000))
-        hours_in_minutes = randint(5,40) * 60
+        pay = "$" + str(randint(7,100)) + ".00"
+        hours = str(randint(5,40))
         job_post = JobPost(title=title,
                            description=description,
-                           pay_in_cents=pay_in_cents,
-                           hours_in_minutes=hours_in_minutes,
-                           category=new_cat.id,
+                           pay=pay,
+                           hours=hours,
+                           category_id=new_cat.id,
                            user_id=this_user.id)
 
         session.add(job_post)
