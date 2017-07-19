@@ -14,29 +14,29 @@ class User(Base):
   picture = Column(String(250))
 
 
-class Job(Base):
-    __tablename__ = 'job'
+class JobCategory(Base):
+    __tablename__ = 'job_category'
 
     id = Column(Integer, primary_key=True)
-    category = Column(String(250), nullable=False)
+    name = Column(String(250), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
 
-class Stuff(Base):
-    __tablename__ = 'stuff'
+class StuffCategory(Base):
+    __tablename__ = 'stuff_category'
 
     id = Column(Integer, primary_key=True)
-    category = Column(String(250), nullable=False)
+    name = Column(String(250), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
 
-class Space(Base):
-    __tablename__ = 'space'
+class SpaceCategory(Base):
+    __tablename__ = 'space_category'
 
     id = Column(Integer, primary_key=True)
-    category = Column(String(250), nullable=False)
+    name = Column(String(250), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
@@ -46,10 +46,10 @@ class JobPost(Base):
     id = Column(Integer, primary_key = True)
     title =Column(String(80), nullable = False)
     description = Column(String(250))
-    pay = Column(String(8))
-    hours = Column(String(8))
-    job_id = Column(Integer,ForeignKey('job.id'))
-    category = relationship(Job)
+    pay_in_cents = Column(Integer)
+    hours_in_minutes = Column(Integer)
+    job_id = Column(Integer,ForeignKey('job_category.id'))
+    category = relationship(JobCategory)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
@@ -59,9 +59,9 @@ class StuffPost(Base):
     id = Column(Integer, primary_key = True)
     title =Column(String(80), nullable = False)
     description = Column(String(250))
-    price = Column(String(8))
-    stuff_id = Column(Integer,ForeignKey('stuff.id'))
-    category = relationship(Stuff)
+    price_in_cents = Column(Integer)
+    stuff_id = Column(Integer,ForeignKey('stuff_category.id'))
+    category = relationship(StuffCategory)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
@@ -71,9 +71,10 @@ class SpacePost(Base):
     id = Column(Integer, primary_key = True)
     title =Column(String(80), nullable = False)
     description = Column(String(250))
-    price = Column(String(8))
-    space_id = Column(Integer,ForeignKey('space.id'))
-    category = relationship(Space)
+    price_in_cents = Column(Integer)
+    square_footage = Column(Integer)
+    space_id = Column(Integer,ForeignKey('space_category.id'))
+    category = relationship(SpaceCategory)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
