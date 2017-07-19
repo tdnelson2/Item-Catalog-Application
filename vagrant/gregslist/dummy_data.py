@@ -21,7 +21,7 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-Create dummy user
+# Create dummy user
 admin_user = User(name="Robo Admin", email="robo_admin@gregslist.com",
              picture='static/images/robo_admin.jpg')
 session.add(admin_user)
@@ -29,7 +29,7 @@ session.commit()
 
 this_user = session.query(User).filter_by(email="robo_admin@gregslist.com").one()
 
-print this_user.name
+# Create jobs categories and job posts
 
 job_categories = ["finance", "office", "art", "science", "retail", "software", "media", "web", "government", "legal", "marketing", "service"]
 dummy_jobs = ["Bailiff", "Horticulturalist", "Radio presenter", "Dressmaker", "Social worker", "Anthropologist", "Car dealer", "Tour guide", "Speech therapist", "Bookmaker", "Comedian", "Garden designer", "Plumber"]
@@ -60,4 +60,4 @@ for job_cat in job_categories:
         session.commit()
 
 
-print "added menu items!"
+print "jobs added!"

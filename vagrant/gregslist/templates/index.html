@@ -2,22 +2,16 @@
 {% block content %}
   <div class="container">
     <div class="row">
+      {% if job_categories %}
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-4 box">
         <h1 class="align-to-categories">jobs</h1>
         <div class="list-group">
-          <a href="#" class="list-group-item list-group-item-action">finance</a>
-          <a href="#" class="list-group-item list-group-item-action">office</a>
-          <a href="#" class="list-group-item list-group-item-action">art</a>
-          <a href="#" class="list-group-item list-group-item-action">science</a>
-          <a href="#" class="list-group-item list-group-item-action">retail</a>
-          <a href="#" class="list-group-item list-group-item-action">software</a>
-          <a href="#" class="list-group-item list-group-item-action">media</a>
-          <a href="#" class="list-group-item list-group-item-action">web</a>
-          <a href="#" class="list-group-item list-group-item-action">government</a>
-          <a href="#" class="list-group-item list-group-item-action">legal</a>
-          <a href="#" class="list-group-item list-group-item-action">marketing</a>
+          {% for job_category in job_categories %}
+          <a href="{{url_for('showJobCategory', category_id=job_category.id)}}"" class="list-group-item list-group-item-action">{{ job_category.name }}</a>
+          {% endfor %}
         </div>
       </div>
+      {% endif %}
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-4 box">
         <h1 class="align-to-categories">stuff</h1>
         <div class="list-group">
