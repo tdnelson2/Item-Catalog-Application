@@ -29,7 +29,36 @@ def mainPage():
 
 @app.route('/gregslist/<int:category_id>/job-category/')
 def showJobCategory(category_id):
-	return render_template('specific-item.html')
+	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
+	job_posts = session.query(JobPost).filter_by(category_id=category_id).order_by(JobPost.title)
+	return render_template('specific-category.html', 
+							categories=job_categories, 
+							this_category_id=category_id,
+							posts=job_posts)
+
+
+@app.route('/gregslist/<int:post_id>/post/')
+def showJobPost(post_id):
+	post = session.query(JobPost).filter_by(id=post_id).one()
+	return render_template('specific-item.html', post=post)
+
+@app.route('/gregslist/<int:post_id>/delete/', methods=['GET', 'POST'])
+def deletePost(post_id):
+	post = session.query(JobPost).filter_by(id=post_id).one()
+	if request.method == 'POST':
+		session.delete(post)
+		flash('"%s" has been deleted' % post.title)
+		session.commit()
+		return redirect(url_for('mainPage'))
+	else:
+		return render_template('delete-item.html', post=post)
+
+# @app.route('/gregslist/<int:post_id>/edit/')
+# def editPost(post_id):
+# 	post = session.query(JobPost).filter_by(id=post_id).one()
+# 	if request.method == 'POST':
+# 	else:
+# 		return render_template('edit-item.html', post=post)
 
 
 if __name__ == '__main__':

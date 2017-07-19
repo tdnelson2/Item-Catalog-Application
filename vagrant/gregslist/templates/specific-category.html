@@ -1,56 +1,29 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>gregslist</title>
-  <link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
-  <link rel="stylesheet" type="text/css" href="../css/style.css">
-</head>
-<body>
-  <!-- boilerplate bootstrap navbar -->
-  <nav class="navbar navbar-inverse">
-    <div class="container-fluid">
-      <div class="navbar-header">
-        <a class="navbar-brand" href="#">gregslist</a>
-      </div>
-      <ul class="nav navbar-nav navbar-right">
-        <li><a href="#"><span class="glyphicon glyphicon-user"></span> sign up</a></li>
-        <li><a href="#"><span class="glyphicon glyphicon-log-in"></span> login</a></li>
-      </ul>
-    </div>
-  </nav>
+{% extends "base.html" %}
+{% block content %}
   <div class="container">
     <div class="row">
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-2 box">
+      {% if categories %}
+      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-2">
         <div class="list-group">
-          <a href="#" class="list-group-item list-group-item-action">finance</a>
-          <a href="#" class="list-group-item list-group-item-action">office</a>
-          <a href="#" class="list-group-item list-group-item-action active">art</a>
-          <a href="#" class="list-group-item list-group-item-action">science</a>
-          <a href="#" class="list-group-item list-group-item-action">retail</a>
-          <a href="#" class="list-group-item list-group-item-action">software</a>
-          <a href="#" class="list-group-item list-group-item-action">media</a>
-          <a href="#" class="list-group-item list-group-item-action">web</a>
-          <a href="#" class="list-group-item list-group-item-action">government</a>
-          <a href="#" class="list-group-item list-group-item-action">legal</a>
-          <a href="#" class="list-group-item list-group-item-action">marketing</a>
+          {% for category in categories %}
+          {% if this_category_id == category.id %}
+          <a href="#" class="list-group-item list-group-item-action active">{{ category.name }}</a>
+          {% else %}
+          <a href="{{url_for('showJobCategory', category_id=category.id)}}" class="list-group-item list-group-item-action">{{ category.name }}</a>
+          {% endif %}
+          {% endfor %}
         </div>
       </div>
-    <div class="row">
+      {% endif %}
+      {% if posts %}
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-9 box">
         <div class="list-group">
-          <a href="#" class="list-group-item list-group-item-action category-items">a large Picaso - $50</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">George Washington bust - $5</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">will paint you a mural - $1</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">old sketches - $30</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">metal sculpture - $500</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">custom picture frame - $50</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">pop art posters - $10</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">canvase painting - $30</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">floral arrangement - $40</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">yard art, all kinds - $5</a>
-          <a href="#" class="list-group-item list-group-item-action category-items">arts supplies, various - $20</a>
+        {% for post in posts %}
+          <a href="{{url_for('showJobPost', post_id=post.id)}}" class="list-group-item list-group-item-action category-items">{{ post.title }}</a>
+        {% endfor %}
         </div>
       </div>
+      {% endif %}
+    </div>
   </div>
-</body>
-</html>
+{% endblock %}
