@@ -7,7 +7,9 @@
       </a>
     </div>
     <div>
-      <button type="button" class="btn btn-default">edit</button>
+      <a href="{{ url_for('editPost', post_id=post.id) }}">
+        <button type="button" class="btn btn-default">edit</button>
+      </a>
       <a href="{{ url_for('deletePost', post_id=post.id) }}">
         <button type="button" class="btn btn-default">delete</button>
       </a>

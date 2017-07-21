@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2> Are you sure you want to delete "{{post.title}}"? </h2>
-<form action="#" method = 'post'>
+<form method = 'post'>
   <button type="submit" class="btn btn-danger" id="submit" type="submit">delete!</button>
   <a href = '{{url_for('mainPage')}}'>
     <button class="btn btn-default">cancel</button>

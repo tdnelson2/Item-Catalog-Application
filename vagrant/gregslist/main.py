@@ -11,6 +11,9 @@ from oauth2client.client import FlowExchangeError
 import httplib2
 import json
 
+# decorators:
+# http://exploreflask.com/en/latest/views.html
+# @login_required
 
 # Connect to Database and create database session
 engine = create_engine('sqlite:///gregslist.db')
@@ -24,17 +27,16 @@ app = Flask(__name__)
 @app.route('/')
 @app.route('/gregslist/')
 def mainPage():
-	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
+	job_categories = jobCategories(pagefunc='showJobCategory')
 	return render_template('index.html', job_categories=job_categories)
 
 @app.route('/gregslist/<int:category_id>/job-category/')
 def showJobCategory(category_id):
-	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
+	job_categories = jobCategories(pagefunc='showJobCategory', 
+								   mini=True, 
+								   highlight=category_id)
 	job_posts = session.query(JobPost).filter_by(category_id=category_id).order_by(JobPost.title)
-	return render_template('specific-category.html', 
-							categories=job_categories, 
-							this_category_id=category_id,
-							posts=job_posts)
+	return render_template('specific-category.html', job_categories=job_categories, posts=job_posts)
 
 
 @app.route('/gregslist/<int:post_id>/post/')
@@ -53,12 +55,49 @@ def deletePost(post_id):
 	else:
 		return render_template('delete-item.html', post=post)
 
-# @app.route('/gregslist/<int:post_id>/edit/')
-# def editPost(post_id):
-# 	post = session.query(JobPost).filter_by(id=post_id).one()
-# 	if request.method == 'POST':
-# 	else:
-# 		return render_template('edit-item.html', post=post)
+@app.route('/gregslist/<int:post_id>/edit/', methods=['GET', 'POST'])
+def editPost(post_id):
+	post = session.query(JobPost).filter_by(id=post_id).one()
+	if request.method == 'POST':
+		post.title = request.form['title']
+		post.description = request.form['description']
+		flash('"%s" successfully edited' % post.title)
+		session.commit()
+		return redirect(url_for('mainPage'))
+	else:
+		return render_template('create-or-edit.html', post=post, case="edit")
+
+@app.route('/gregslist/choose/category/', methods=['GET', 'POST'])
+def newPostCategorySelect():
+	print "button pressed"
+	print request.form
+	if request.method == 'POST':
+		if 'jobs' in request.form:
+			return redirect(url_for('newPostSubCategorySelect', category='jobs'))
+		if 'stuff' in request.form:
+			return redirect(url_for('newPostSubCategorySelect', category='stuff'))
+		if 'space' in request.form:
+			return redirect(url_for('newPostSubCategorySelect', category='space'))
+	else:
+		return render_template('category-select.html')
+
+@app.route('/gregslist/<category>/choose/sub-category', methods=['GET', 'POST'])
+def newPostSubCategorySelect(category):
+	return render_template('index.html')
+
+
+def jobCategories(pagefunc='showJobCategory', mini=False, highlight=""):
+	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
+	if mini:
+		return render_template('job-categories-mini.html', 
+								job_categories=job_categories, 
+								pagefunc=pagefunc, 
+								current_category_id=highlight)
+	else:
+		return render_template('job-categories.html', 
+								job_categories=job_categories, 
+								pagefunc=pagefunc)
+
 
 
 if __name__ == '__main__':

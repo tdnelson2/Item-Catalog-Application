@@ -1,0 +1,10 @@
+      {% if job_categories %}
+      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-4 box">
+        <h1 class="align-to-categories">jobs</h1>
+        <div class="list-group">
+          {% for job_category in job_categories %}
+          <a href="{{url_for(pagefunc, category_id=job_category.id)}}"" class="list-group-item list-group-item-action">{{ job_category.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}

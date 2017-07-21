@@ -2,19 +2,7 @@
 {% block content %}
   <div class="container">
     <div class="row">
-      {% if categories %}
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-2">
-        <div class="list-group">
-          {% for category in categories %}
-          {% if this_category_id == category.id %}
-          <a href="#" class="list-group-item list-group-item-action active">{{ category.name }}</a>
-          {% else %}
-          <a href="{{url_for('showJobCategory', category_id=category.id)}}" class="list-group-item list-group-item-action">{{ category.name }}</a>
-          {% endif %}
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
+      {{ job_categories | safe }}
       {% if posts %}
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-9 box">
         <div class="list-group">

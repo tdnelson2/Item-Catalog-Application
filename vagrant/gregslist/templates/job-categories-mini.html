@@ -1,0 +1,13 @@
+      {% if job_categories %}
+      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-2">
+        <div class="list-group">
+          {% for job_category in job_categories %}
+          {% if current_category_id == job_category.id %}
+          <a href="#" class="list-group-item list-group-item-action active">{{ job_category.name }}</a>
+          {% else %}
+          <a href="{{url_for(pagefunc, category_id=job_category.id)}}"" class="list-group-item list-group-item-action">{{ job_category.name }}</a>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}

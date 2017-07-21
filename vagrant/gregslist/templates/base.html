@@ -12,11 +12,13 @@
       <div class="navbar-header">
         <a class="navbar-brand" href="{{url_for('mainPage')}}">gregslist</a>
       </div>
-      <ul class="nav navbar-nav navbar-right">
-        <li><a href="#"><span class="glyphicon glyphicon-user"></span> sign up</a></li>
-        <li><a href="#"><span class="glyphicon glyphicon-log-in"></span> login</a></li>
-        <li><button class="btn btn-primary btn-sm navbar-btn add-btn">post something!</button></li>
-      </ul>
+      <form action="/gregslist/choose/category/">
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="#"><span class="glyphicon glyphicon-user"></span> sign up</a></li>
+          <li><a href="#"><span class="glyphicon glyphicon-log-in"></span> login</a></li>
+          <li><button class="btn btn-primary btn-sm navbar-btn add-btn">post something!</button></li>
+        </ul>
+      </form>
     </div>
   </nav>
   {% block content %}
