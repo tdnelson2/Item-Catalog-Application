@@ -32,8 +32,8 @@ def mainPage():
 
 @app.route('/gregslist/<int:category_id>/job-category/')
 def showJobCategory(category_id):
-	job_categories = jobCategories(pagefunc='showJobCategory', 
-								   mini=True, 
+	job_categories = jobCategories(pagefunc='showJobCategory',
+								   mini=True,
 								   highlight=category_id)
 	job_posts = session.query(JobPost).filter_by(category_id=category_id).order_by(JobPost.title)
 	return render_template('specific-category.html', job_categories=job_categories, posts=job_posts)
@@ -65,7 +65,9 @@ def editPost(post_id):
 		session.commit()
 		return redirect(url_for('mainPage'))
 	else:
-		return render_template('create-or-edit.html', post=post, case="edit")
+		return render_template('create-or-edit.html',
+								title=post.title,
+								description=post.description)
 
 @app.route('/gregslist/choose/category/', methods=['GET', 'POST'])
 def newPostCategorySelect():
@@ -83,20 +85,45 @@ def newPostCategorySelect():
 
 @app.route('/gregslist/<category>/choose/sub-category', methods=['GET', 'POST'])
 def newPostSubCategorySelect(category):
-	return render_template('index.html')
+	if category == 'jobs':
+		job_categories = jobCategories(pagefunc='newJobForm')
+		return render_template('sub-category-select.html', job_categories=job_categories)
+
+@app.route('/gregslist/<int:category_id>/new/job/', methods=['GET', 'POST'])
+def newJobForm(category_id):
+	job_category = session.query(JobCategory).filter_by(id=category_id).one()
+	if request.method == 'POST':
+		title = request.form['title']
+		description = request.form['description']
+		job_post = JobPost(title=title,
+						   description=description,
+						   pay="$0.00",
+						   hours="200",
+						   category_id=category_id,
+						   user_id=1)
+		flash('"%s" successfully added' % title)
+		session.add(job_post)
+		session.commit()
+		return redirect(url_for('mainPage'))
+	else:
+		return render_template('create-or-edit.html',
+								title="",
+								description="")
+
 
 
 def jobCategories(pagefunc='showJobCategory', mini=False, highlight=""):
 	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
 	if mini:
-		return render_template('job-categories-mini.html', 
-								job_categories=job_categories, 
-								pagefunc=pagefunc, 
+		return render_template('job-categories-mini.html',
+								job_categories=job_categories,
+								pagefunc=pagefunc,
 								current_category_id=highlight)
 	else:
-		return render_template('job-categories.html', 
-								job_categories=job_categories, 
+		return render_template('job-categories.html',
+								job_categories=job_categories,
 								pagefunc=pagefunc)
+
 
 
 

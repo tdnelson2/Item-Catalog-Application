@@ -1,9 +1,4 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>choose a category</h2>
-		<form method='post'>
-          <button type="submit" class="btn btn-default" id="submit" name="jobs">jobs</button>
-          <button type="submit" class="btn btn-default" id="submit" name="stuff">stuff</button>
-          <button type="submit" class="btn btn-default" id="submit" name="space">space</button>
-        </form>
+    {{ job_categories | safe }}
 {% endblock %}

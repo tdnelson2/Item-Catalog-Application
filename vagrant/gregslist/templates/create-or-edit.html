@@ -6,11 +6,11 @@
         <form method="post">
           <div class="form-group">
             <label for="title">title</label>
-            <input type="text" class="form-control" id="title" name="title" placeholder="" value="{{post.title}}">
+            <input type="text" class="form-control" id="title" name="title" placeholder="" value="{{ title }}">
           </div>
           <div class="form-group">
             <label for="text-area">detailed description</label>
-            <textarea class="form-control" id="text-area" name="description" rows="10">{{post.description}}</textarea>
+            <textarea class="form-control" id="text-area" name="description" rows="10">{{ description }}</textarea>
           </div>
           <button type="submit" class="btn btn-primary" id="submit" type="submit">submit</button>
           <a href = '{{url_for('mainPage')}}'>
