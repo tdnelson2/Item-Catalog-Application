@@ -43,7 +43,7 @@ def showLogin():
 							FACEBOOK_APP_ID=FACEBOOK_APP_ID)
 
 
-@app.route('/gconnect', methods=['POST'])
+@app.route('/gregslist/gconnect', methods=['POST'])
 def gconnect():
 	# Validate state token
 	if request.args.get('state') != login_session['state']:
@@ -111,8 +111,7 @@ def gconnect():
 
 	data = answer.json()
 
-	print data
-
+	login_session['provider'] = 'google'
 	login_session['username'] = data['name']
 	login_session['picture'] = data['picture']
 	login_session['email'] = data['email']
@@ -151,6 +150,7 @@ def gdisconnect():
 		del login_session['username']
 		del login_session['email']
 		del login_session['picture']
+		del login_session['provider']
 		response = make_response(json.dumps('Successfully disconnected.'), 200)
 		response.headers['Content-Type'] = 'application/json'
 		return response
@@ -220,25 +220,29 @@ def fbconnect():
 		user_id = createUser(login_session)
 	login_session['user_id'] = user_id
 
+	flash("Now logged in as %s" % login_session['username'])
+
 	return render_template('login-success.html', 
 							username=login_session['username'], 
 							img_url=login_session['picture'])
-
-	flash("Now logged in as %s" % login_session['username'])
-	return output
 
 
 # fb logout
 @app.route('/gregslist/fbdisconnect/')
 def fbdisconnect():
-	print login_session
 	facebook_id = login_session['facebook_id']
 	# The access token must me included to successfully logout
 	access_token = login_session['access_token']
 	url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id,access_token)
 	h = httplib2.Http()
 	result = h.request(url, 'DELETE')[1]
-	return "you have been logged out"
+	if result == '{"success":true}':
+		del login_session['user_id']
+		del login_session['provider']
+		del login_session['username']
+		del login_session['email']
+		del login_session['facebook_id']
+		return "you have been logged out"
 
 # Show all posts
 @app.route('/')
@@ -345,7 +349,10 @@ def jobCategories(pagefunc='showJobCategory', mini=False, highlight=""):
 def utility_processor():
 	def render_flashed_message():
 		return render_template('flashed-messages.html')
-	return dict(render_flashed_message=render_flashed_message)
+	def login_provider():
+		if 'provider' in login_session:
+			return login_session['provider']
+	return dict(render_flashed_message=render_flashed_message, login_provider=login_provider)
 
 def createUser(login_session):
 	""" add user to the db """
