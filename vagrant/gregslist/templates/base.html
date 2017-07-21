@@ -4,6 +4,8 @@
   <title>gregslist</title>
   <link rel="stylesheet" type="text/css" href="/static/styles/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="/static/styles/styles.css">
+  <script src="/static/js/jquery-3.2.1.min.js"></script>
+  <script src="/static/js/bootstrap.min.js"></script>
 </head>
 <body>
   <!-- boilerplate bootstrap navbar -->
@@ -12,10 +14,10 @@
       <div class="navbar-header">
         <a class="navbar-brand" href="{{url_for('mainPage')}}">gregslist</a>
       </div>
-      <form action="/gregslist/choose/category/">
+      <form action="{{ url_for('newPostCategorySelect') }}">
         <ul class="nav navbar-nav navbar-right">
           <li><a href="#"><span class="glyphicon glyphicon-user"></span> sign up</a></li>
-          <li><a href="#"><span class="glyphicon glyphicon-log-in"></span> login</a></li>
+          <li><a href="{{ url_for('showLogin') }}"><span class="glyphicon glyphicon-log-in"></span> login</a></li>
           <li><button class="btn btn-primary btn-sm navbar-btn add-btn">post something!</button></li>
         </ul>
       </form>
