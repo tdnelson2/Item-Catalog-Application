@@ -1,10 +1,16 @@
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     {% for message in messages %}
-    <div class="alert alert-success .alert-dismissable">
+    {% with components = message.split("[")[1].split("]") %}
+    {% with type = components[0] %}
+    {% with msg = components[1] %}
+    <div class="alert alert-{{type}} .alert-dismissable">
       <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-      <strong>Success!</strong> {{ message }}
+      <strong>{{ type.title() }}!</strong> {{ msg }}
     </div>
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
     {% endfor %}
     {% endif %}
     {% endwith %}

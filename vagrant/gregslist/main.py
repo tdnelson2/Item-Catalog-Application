@@ -11,6 +11,7 @@ from oauth2client.client import FlowExchangeError
 import httplib2
 import json
 import requests
+from functools import wraps
 
 # https://console.developers.google.com/apis/credentials?project=greglist-174419
 GOOGLE_CLIENT_ID = json.loads(
@@ -31,6 +32,19 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 app = Flask(__name__)
+
+def login_required(func):
+	"""
+	A decorator to confirm login or redirect as needed
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		if 'logged_in' in login_session:
+			return func(*args, **kwargs)
+		else:
+			flash("[warning]You need to login first")
+			return redirect(url_for('mainPage'))
+	return wrap
 
 @app.route('/gregslist/login/')
 def showLogin():
@@ -111,6 +125,7 @@ def gconnect():
 
 	data = answer.json()
 
+	login_session['logged_in'] = True
 	login_session['provider'] = 'google'
 	login_session['username'] = data['name']
 	login_session['picture'] = data['picture']
@@ -121,13 +136,14 @@ def gconnect():
 	if not user_id:
 		user_id = createUser(login_session)
 	login_session['user_id'] = user_id
-	flash("you are now logged in as %s" % login_session['username'])
-	return render_template('login-success.html', 
-							username=login_session['email'], 
+	flash("[success]you are now logged in as %s" % login_session['username'])
+	return render_template('login-success.html',
+							username=login_session['email'],
 							img_url=login_session['picture'])
 
 
 @app.route('/gregslist/gdisconnect/')
+@login_required
 def gdisconnect():
 	access_token = None
 	if 'access_token' in login_session:
@@ -145,6 +161,7 @@ def gdisconnect():
 	print 'result is '
 	print result
 	if result['status'] == '200':
+		del login_session['logged_in']
 		del login_session['access_token']
 		del login_session['gplus_id']
 		del login_session['username']
@@ -159,7 +176,7 @@ def gdisconnect():
 			'Failed to revoke token for given user.', 400))
 		response.headers['Content-Type'] = 'application/json'
 		return response
-	
+
 # Facebook login
 @app.route('/gregslist/fbconnect', methods=['POST'])
 def fbconnect():
@@ -183,9 +200,9 @@ def fbconnect():
 
 	# Use token to get user info from API
 	userinfo_url = "https://graph.facebook.com/v2.8/me"
-	''' 
-		Due to the formatting for the result from the server token exchange we have to 
-		split the token first on commas and select the first index which gives us the key : value 
+	'''
+		Due to the formatting for the result from the server token exchange we have to
+		split the token first on commas and select the first index which gives us the key : value
 		for the server access token then we split it on colons to pull out the actual token value
 		and replace the remaining quotes with nothing so that it can be used directly in the graph
 		api calls
@@ -198,6 +215,7 @@ def fbconnect():
 	# print "url sent for API access:%s"% url
 	# print "API JSON result: %s" % result
 	data = json.loads(result)
+	login_session['logged_in'] = True
 	login_session['provider'] = 'facebook'
 	login_session['username'] = data["name"]
 	login_session['email'] = data["email"]
@@ -220,15 +238,16 @@ def fbconnect():
 		user_id = createUser(login_session)
 	login_session['user_id'] = user_id
 
-	flash("Now logged in as %s" % login_session['username'])
+	flash("[success]Now logged in as %s" % login_session['username'])
 
-	return render_template('login-success.html', 
-							username=login_session['username'], 
+	return render_template('login-success.html',
+							username=login_session['username'],
 							img_url=login_session['picture'])
 
 
 # fb logout
 @app.route('/gregslist/fbdisconnect/')
+@login_required
 def fbdisconnect():
 	facebook_id = login_session['facebook_id']
 	# The access token must me included to successfully logout
@@ -237,6 +256,7 @@ def fbdisconnect():
 	h = httplib2.Http()
 	result = h.request(url, 'DELETE')[1]
 	if result == '{"success":true}':
+		del login_session['logged_in']
 		del login_session['user_id']
 		del login_session['provider']
 		del login_session['username']
@@ -266,23 +286,25 @@ def showJobPost(post_id):
 	return render_template('specific-item.html', post=post)
 
 @app.route('/gregslist/<int:post_id>/delete/', methods=['GET', 'POST'])
+@login_required
 def deletePost(post_id):
 	post = session.query(JobPost).filter_by(id=post_id).one()
 	if request.method == 'POST':
 		session.delete(post)
-		flash('"%s" has been deleted' % post.title)
+		flash('[info]"%s" has been deleted' % post.title)
 		session.commit()
 		return redirect(url_for('mainPage'))
 	else:
 		return render_template('delete-item.html', post=post)
 
 @app.route('/gregslist/<int:post_id>/edit/', methods=['GET', 'POST'])
+@login_required
 def editPost(post_id):
 	post = session.query(JobPost).filter_by(id=post_id).one()
 	if request.method == 'POST':
 		post.title = request.form['title']
 		post.description = request.form['description']
-		flash('"%s" successfully edited' % post.title)
+		flash('[success]"%s" successfully edited' % post.title)
 		session.commit()
 		return redirect(url_for('mainPage'))
 	else:
@@ -291,6 +313,7 @@ def editPost(post_id):
 								description=post.description)
 
 @app.route('/gregslist/choose/category/', methods=['GET', 'POST'])
+@login_required
 def newPostCategorySelect():
 	print "button pressed"
 	print request.form
@@ -305,12 +328,14 @@ def newPostCategorySelect():
 		return render_template('category-select.html')
 
 @app.route('/gregslist/<category>/choose/sub-category', methods=['GET', 'POST'])
+@login_required
 def newPostSubCategorySelect(category):
 	if category == 'jobs':
 		job_categories = jobCategories(pagefunc='newJobForm')
 		return render_template('sub-category-select.html', job_categories=job_categories)
 
 @app.route('/gregslist/<int:category_id>/new/job/', methods=['GET', 'POST'])
+@login_required
 def newJobForm(category_id):
 	job_category = session.query(JobCategory).filter_by(id=category_id).one()
 	if request.method == 'POST':
@@ -322,7 +347,7 @@ def newJobForm(category_id):
 						   hours="200",
 						   category_id=category_id,
 						   user_id=1)
-		flash('"%s" successfully added' % title)
+		flash('[success]"%s" successfully added' % title)
 		session.add(job_post)
 		session.commit()
 		return redirect(url_for('mainPage'))
