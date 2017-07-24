@@ -339,10 +339,11 @@ def showJobPost(post_id, post, is_owner):
 def deletePost(post_id, post):
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
+		category_id = post.category_id
 		session.delete(post)
 		flash('[info]"%s" has been deleted' % post.title)
 		session.commit()
-		return redirect(url_for('mainPage'))
+		return redirect(url_for('showJobCategory', category_id=category_id))
 	else:
 		return render_template('delete-item.html', post=post)
 
@@ -357,7 +358,7 @@ def editPost(post_id, post):
 		post.description = request.form['description']
 		flash('[success]"%s" successfully edited' % post.title)
 		session.commit()
-		return redirect(url_for('showJobPost', post_id))
+		return redirect(url_for('showJobPost', post_id=post_id))
 	else:
 		return render_template('create-or-edit.html',
 								title=post.title,
@@ -422,12 +423,19 @@ def jobCategories(pagefunc='showJobCategory', mini=False, highlight=""):
 
 @app.context_processor
 def utility_processor():
+	def render_nav_bar():
+		return render_template('nav-bar.html')
+	def render_links_and_scripts():
+		return render_template('links-and-scripts.html')
 	def render_flashed_message():
 		return render_template('flashed-messages.html')
 	def login_provider():
 		if 'provider' in login_session:
 			return login_session['provider']
-	return dict(render_flashed_message=render_flashed_message, login_provider=login_provider)
+	return dict(render_flashed_message=render_flashed_message, 
+				login_provider=login_provider,
+				render_nav_bar=render_nav_bar,
+				render_links_and_scripts=render_links_and_scripts)
 
 def createUser(login_session):
 	""" add user to the db """

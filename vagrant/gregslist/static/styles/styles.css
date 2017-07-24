@@ -36,3 +36,9 @@ body {
     border-color: #f5f5f5;
     color: #222222;
 }
+
+.centered {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
