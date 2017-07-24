@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
+{{ render_flashed_message() | safe }}
   <div class="container">
     <h1 class="align-to-categories">{{ post.title }}</h1>
     <div class="list-group">
       <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">{{ post.description }}
       </a>
     </div>
+    {% if is_owner %}
     <div>
       <a href="{{ url_for('editPost', post_id=post.id) }}">
         <button type="button" class="btn btn-default">edit</button>
@@ -14,5 +16,6 @@
         <button type="button" class="btn btn-default">delete</button>
       </a>
     </div>
+    {% endif %}
   </div>
 {% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{{ render_flashed_message() | safe }}
 <h2>choose a category</h2>
 		<form method='post'>
           <button type="submit" class="btn btn-default" id="submit" name="jobs">jobs</button>

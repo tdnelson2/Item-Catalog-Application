@@ -39,12 +39,56 @@ def login_required(func):
 	"""
 	@wraps(func)
 	def wrap(*args, **kwargs):
+		print args
+		print kwargs
 		if 'logged_in' in login_session:
 			return func(*args, **kwargs)
 		else:
 			flash("[warning]You need to login first")
-			return redirect(url_for('mainPage'))
+			print "Will REDIRECT " + login_session['current_url']
+			return redirect(login_session['current_url'])
 	return wrap
+
+def owner_filter(func):
+	"""
+	A decorator to confirm if user created the item
+	and display so page can 'edit'/'delete' buttons as needed
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		# if all tests fail, current user is not owner
+		kwargs['is_owner'] = False
+		if 'post_id' in kwargs:
+			try:
+				post = session.query(JobPost).filter_by(id=kwargs['post_id']).one()
+				kwargs["post"] = post
+			except:
+				flash("[warning]This post does not exist")
+				print "Will REDIRECT " + login_session['current_url']
+				return redirect(login_session['current_url'])
+			if 'user_id' in login_session and post.user_id == login_session['user_id']:
+					# current user created this post
+					kwargs["is_owner"] = True
+					return func(*args, **kwargs)
+		return func(*args, **kwargs)
+	return wrap
+
+def ownership_required(func):
+	"""
+	A decorator to confirm authorization and redirect as needed.
+	Intended to be used directly after owner_filter.
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		if 'is_owner' in kwargs and 'post' in kwargs:
+			if kwargs['is_owner']:
+				del kwargs['is_owner']
+				return func(*args, **kwargs)
+		flash("[warning]You do not own this post")
+		print "Will REDIRECT " + login_session['current_url']
+		return redirect(login_session['current_url'])
+	return wrap
+
 
 @app.route('/gregslist/login/')
 def showLogin():
@@ -268,11 +312,13 @@ def fbdisconnect():
 @app.route('/')
 @app.route('/gregslist/')
 def mainPage():
+	login_session['current_url'] = request.url
 	job_categories = jobCategories(pagefunc='showJobCategory')
 	return render_template('index.html', job_categories=job_categories)
 
 @app.route('/gregslist/<int:category_id>/job-category/')
 def showJobCategory(category_id):
+	login_session['current_url'] = request.url
 	job_categories = jobCategories(pagefunc='showJobCategory',
 								   mini=True,
 								   highlight=category_id)
@@ -281,14 +327,17 @@ def showJobCategory(category_id):
 
 
 @app.route('/gregslist/<int:post_id>/post/')
-def showJobPost(post_id):
-	post = session.query(JobPost).filter_by(id=post_id).one()
-	return render_template('specific-item.html', post=post)
+@owner_filter
+def showJobPost(post_id, post, is_owner):
+	login_session['current_url'] = request.url
+	return render_template('specific-item.html', post=post, is_owner=is_owner)
 
 @app.route('/gregslist/<int:post_id>/delete/', methods=['GET', 'POST'])
 @login_required
-def deletePost(post_id):
-	post = session.query(JobPost).filter_by(id=post_id).one()
+@owner_filter
+@ownership_required
+def deletePost(post_id, post):
+	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		session.delete(post)
 		flash('[info]"%s" has been deleted' % post.title)
@@ -299,14 +348,16 @@ def deletePost(post_id):
 
 @app.route('/gregslist/<int:post_id>/edit/', methods=['GET', 'POST'])
 @login_required
-def editPost(post_id):
-	post = session.query(JobPost).filter_by(id=post_id).one()
+@owner_filter
+@ownership_required
+def editPost(post_id, post):
+	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		post.title = request.form['title']
 		post.description = request.form['description']
 		flash('[success]"%s" successfully edited' % post.title)
 		session.commit()
-		return redirect(url_for('mainPage'))
+		return redirect(url_for('showJobPost', post_id))
 	else:
 		return render_template('create-or-edit.html',
 								title=post.title,
@@ -315,8 +366,7 @@ def editPost(post_id):
 @app.route('/gregslist/choose/category/', methods=['GET', 'POST'])
 @login_required
 def newPostCategorySelect():
-	print "button pressed"
-	print request.form
+	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		if 'jobs' in request.form:
 			return redirect(url_for('newPostSubCategorySelect', category='jobs'))
@@ -330,6 +380,7 @@ def newPostCategorySelect():
 @app.route('/gregslist/<category>/choose/sub-category', methods=['GET', 'POST'])
 @login_required
 def newPostSubCategorySelect(category):
+	login_session['current_url'] = request.url
 	if category == 'jobs':
 		job_categories = jobCategories(pagefunc='newJobForm')
 		return render_template('sub-category-select.html', job_categories=job_categories)
@@ -337,17 +388,16 @@ def newPostSubCategorySelect(category):
 @app.route('/gregslist/<int:category_id>/new/job/', methods=['GET', 'POST'])
 @login_required
 def newJobForm(category_id):
+	login_session['current_url'] = request.url
 	job_category = session.query(JobCategory).filter_by(id=category_id).one()
 	if request.method == 'POST':
-		title = request.form['title']
-		description = request.form['description']
-		job_post = JobPost(title=title,
-						   description=description,
+		job_post = JobPost(title=request.form['title'],
+						   description=request.form['description'],
 						   pay="$0.00",
 						   hours="200",
 						   category_id=category_id,
-						   user_id=1)
-		flash('[success]"%s" successfully added' % title)
+						   user_id=login_session['user_id'])
+		flash('[success]"%s" successfully added' % request.form['title'])
 		session.add(job_post)
 		session.commit()
 		return redirect(url_for('mainPage'))
