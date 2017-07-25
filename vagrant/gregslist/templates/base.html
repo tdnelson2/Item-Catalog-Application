@@ -4,8 +4,10 @@
   {{ render_links_and_scripts() | safe }}
 </head>
 <body>
+  <div class="container">
   {{ render_nav_bar() | safe }}
   {% block content %}
   {% endblock %}
+  </div>
 </body>
 </html>

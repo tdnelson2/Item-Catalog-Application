@@ -212,14 +212,11 @@ def gdisconnect():
 		del login_session['email']
 		del login_session['picture']
 		del login_session['provider']
-		response = make_response(json.dumps('Successfully disconnected.'), 200)
-		response.headers['Content-Type'] = 'application/json'
-		return response
+		flash("[info]You have been logged out")
+		return redirect(url_for('mainPage'))
 	else:
-		response = make_response(json.dumps(
-			'Failed to revoke token for given user.', 400))
-		response.headers['Content-Type'] = 'application/json'
-		return response
+		flash("[warning]Failed to revoke token for given user")
+		return redirect(url_for('mainPage'))
 
 # Facebook login
 @app.route('/gregslist/fbconnect', methods=['POST'])
@@ -306,7 +303,11 @@ def fbdisconnect():
 		del login_session['username']
 		del login_session['email']
 		del login_session['facebook_id']
-		return "you have been logged out"
+		flash("[info]You have been logged out")
+		return redirect(url_for('mainPage'))
+	else:
+		flash("[warning]Failed to revoke token for given user")
+		return redirect(url_for('mainPage'))
 
 # Show all posts
 @app.route('/')
@@ -330,7 +331,7 @@ def showJobCategory(category_id):
 @owner_filter
 def showJobPost(post_id, post, is_owner):
 	login_session['current_url'] = request.url
-	return render_template('specific-item.html', post=post, is_owner=is_owner)
+	return render_template('specific-item.html', post=post, is_owner=is_owner, post_type="job")
 
 @app.route('/gregslist/<int:post_id>/delete/', methods=['GET', 'POST'])
 @login_required
@@ -361,8 +362,10 @@ def editPost(post_id, post):
 		return redirect(url_for('showJobPost', post_id=post_id))
 	else:
 		return render_template('create-or-edit.html',
+								form_type="job",
 								title=post.title,
-								description=post.description)
+								description=post.description,
+								params={"pay" : post.pay, "hours" : post.hours})
 
 @app.route('/gregslist/choose/category/', methods=['GET', 'POST'])
 @login_required
@@ -394,8 +397,8 @@ def newJobForm(category_id):
 	if request.method == 'POST':
 		job_post = JobPost(title=request.form['title'],
 						   description=request.form['description'],
-						   pay="$0.00",
-						   hours="200",
+						   pay=request.form['pay'],
+						   hours=request.form['hours'],
 						   category_id=category_id,
 						   user_id=login_session['user_id'])
 		flash('[success]"%s" successfully added' % request.form['title'])
@@ -404,8 +407,10 @@ def newJobForm(category_id):
 		return redirect(url_for('mainPage'))
 	else:
 		return render_template('create-or-edit.html',
+								form_type="job",
 								title="",
-								description="")
+								description="",
+								params={"pay" : "", "hours" : ""})
 
 
 
@@ -429,13 +434,19 @@ def utility_processor():
 		return render_template('links-and-scripts.html')
 	def render_flashed_message():
 		return render_template('flashed-messages.html')
+	def render_job_specific_form(params):
+		return render_template('job-specific-form.html', params=params)
+	def render_job_specific_items(post):
+		return render_template('job-specific-items.html', post=post)
 	def login_provider():
 		if 'provider' in login_session:
 			return login_session['provider']
 	return dict(render_flashed_message=render_flashed_message, 
 				login_provider=login_provider,
 				render_nav_bar=render_nav_bar,
-				render_links_and_scripts=render_links_and_scripts)
+				render_links_and_scripts=render_links_and_scripts,
+				render_job_specific_form=render_job_specific_form,
+				render_job_specific_items=render_job_specific_items)
 
 def createUser(login_session):
 	""" add user to the db """

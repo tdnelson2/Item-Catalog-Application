@@ -1,7 +1,14 @@
-{% extends "base.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+	{{ render_links_and_scripts() | safe }}
+</head>
+<body>
   <div class="text-center">
     <h1>welcome {{ username }}!</h1>
-    <img src="{{ img_url }}" class="img-circle" alt="{{ username }}'s picture">
+    <img src="{{ img_url }}" class="img-circle" style="width: 150px; height: 150px" alt="{{ username }}'s picture">
+    <br>
+    <h2><em>redirecting...</em></h2>
   </div>
-{% endblock %}
+</body>
+</html>

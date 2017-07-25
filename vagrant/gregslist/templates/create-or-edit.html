@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 {{ render_flashed_message() | safe }}
-  <div class="container">
     <div class="row">
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-4 box">
         <form method="post">
@@ -9,6 +8,9 @@
             <label for="title">title</label>
             <input type="text" class="form-control" id="title" name="title" placeholder="" value="{{ title }}">
           </div>
+          {% if form_type == "job" %}
+          {{ render_job_specific_form(params) | safe }}
+          {% endif %}
           <div class="form-group">
             <label for="text-area">detailed description</label>
             <textarea class="form-control" id="text-area" name="description" rows="10">{{ description }}</textarea>
@@ -20,5 +22,4 @@
         </form>
       </div>
     </div>
-  </div>
 {% endblock %}

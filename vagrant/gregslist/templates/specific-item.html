@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 {{ render_flashed_message() | safe }}
-  <div class="container">
     <h1 class="align-to-categories">{{ post.title }}</h1>
-    <div class="list-group">
-      <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">{{ post.description }}
-      </a>
+    {% if post_type == "job" %}
+    {{ render_job_specific_items(post) | safe }}
+    {% endif %}
+    <div class="row">
+      <div class="col-xs-12">
+        <div class="list-group">
+          <div class="align-to-categories"><h4>description</h4></div>
+          <div href="#" class="list-group-item list-group-item-action flex-column align-items-start">{{ post.description }}</div>
+        </div>
+      </div>
     </div>
     {% if is_owner %}
     <div>
@@ -17,5 +23,4 @@
       </a>
     </div>
     {% endif %}
-  </div>
 {% endblock %}
