@@ -54,13 +54,21 @@ def owner_filter(func):
 	A decorator to confirm if user created the item
 	and display so page can 'edit'/'delete' buttons as needed
 	"""
+
 	@wraps(func)
 	def wrap(*args, **kwargs):
 		# if all tests fail, current user is not owner
 		kwargs['is_owner'] = False
-		if 'post_id' in kwargs:
+		if 'post_id' in kwargs and 'super_category' in kwargs:
+			sup = kwargs['super_category']
+			if sup == "jobs":
+				table = JobPost
+			if sup == "stuff":
+				table = StuffPost
+			if sup == "space":
+				table = SpacePost
 			try:
-				post = session.query(JobPost).filter_by(id=kwargs['post_id']).one()
+				post = session.query(table).filter_by(id=kwargs['post_id']).one()
 				kwargs["post"] = post
 			except:
 				flash("[warning]This post does not exist")
@@ -315,9 +323,11 @@ def fbdisconnect():
 def mainPage():
 	login_session['current_url'] = request.url
 	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
-	# stuff_categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
-	# space_categories = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
-	super_categories = {"jobs" : job_categories}
+	stuff_categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
+	space_categories = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
+	super_categories = {"jobs" : job_categories, 
+						"stuff" : stuff_categories, 
+						"space" : space_categories}
 	return render_template('index.html', 
 							super_categories=super_categories)
 
@@ -329,12 +339,12 @@ def showCategory(super_category, category):
 		categories = session.query(JobCategory).order_by(asc(JobCategory.name))
 	elif super_category == "stuff":
 		category_entry = session.query(StuffCategory).filter_by(name=category).one()
-		posts = session.query(StuffPost).filter_by(category_id=category_entry.id).order_by(SpacePost.title)
+		posts = session.query(StuffPost).filter_by(category_id=category_entry.id).order_by(StuffPost.title)
 		categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
 	elif super_category == "space":
 		category_entry = session.query(SpaceCategory).filter_by(name=category).one()
-		posts = session.query(SpacePost).filter_by(category_id=category_entry.id).order_by(SpacebPost.title)
-		categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
+		posts = session.query(SpacePost).filter_by(category_id=category_entry.id).order_by(SpacePost.title)
+		categories = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
 	if category_entry and categories and posts:
 		return render_template('specific-category.html', 
 								posts=posts,
@@ -343,11 +353,11 @@ def showCategory(super_category, category):
 								super_category=super_category)
 
 
-@app.route('/gregslist/job/<category>/post/<int:post_id>')
+@app.route('/gregslist/<super_category>/<category>/post/<int:post_id>/')
 @owner_filter
-def showJobPost(post_id, category, post, is_owner):
+def showSpecificPost(super_category, post_id, category, post, is_owner):
 	login_session['current_url'] = request.url
-	return render_template('specific-item.html', post=post, is_owner=is_owner, post_type="job")
+	return render_template('specific-item.html', post=post, is_owner=is_owner, post_type=super_category)
 
 @app.route('/gregslist/<int:post_id>/delete/', methods=['GET', 'POST'])
 @login_required
