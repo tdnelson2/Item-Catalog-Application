@@ -2,8 +2,12 @@
 {% block content %}
 {{ render_flashed_message() | safe }}
     <h1 class="align-to-categories">{{ post.title }}</h1>
-    {% if post_type == "job" %}
+    {% if super_category == "jobs" %}
     {{ render_job_specific_items(post) | safe }}
+    {% elif super_category == "stuff" %}
+    {{ render_stuff_specific_items(post) | safe }}
+    {% elif super_category == "space" %}
+    {{ render_space_specific_items(post) | safe }}
     {% endif %}
     <div class="row">
       <div class="col-xs-12">
@@ -15,10 +19,10 @@
     </div>
     {% if is_owner %}
     <div>
-      <a href="{{ url_for('editPost', post_id=post.id) }}">
+      <a href="{{ url_for('editPost', super_category=super_category, category=category, post_id=post.id) }}">
         <button type="button" class="btn btn-default">edit</button>
       </a>
-      <a href="{{ url_for('deletePost', post_id=post.id) }}">
+      <a href="{{ url_for('deletePost', super_category=super_category, category=category, post_id=post.id) }}">
         <button type="button" class="btn btn-default">delete</button>
       </a>
     </div>

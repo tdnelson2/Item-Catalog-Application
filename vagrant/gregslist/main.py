@@ -88,8 +88,8 @@ def ownership_required(func):
 	"""
 	@wraps(func)
 	def wrap(*args, **kwargs):
-		if 'is_owner' in kwargs and 'post' in kwargs:
-			if kwargs['is_owner']:
+		if 'is_owner' in kwargs:
+			if kwargs['is_owner'] and 'super_category' in kwargs and 'category' in kwargs and 'post' in kwargs:
 				del kwargs['is_owner']
 				return func(*args, **kwargs)
 		flash("[warning]You do not own this post")
@@ -357,13 +357,17 @@ def showCategory(super_category, category):
 @owner_filter
 def showSpecificPost(super_category, post_id, category, post, is_owner):
 	login_session['current_url'] = request.url
-	return render_template('specific-item.html', post=post, is_owner=is_owner, post_type=super_category)
+	return render_template('specific-item.html', 
+							post=post, 
+							is_owner=is_owner, 
+							super_category=super_category, 
+							category=category)
 
-@app.route('/gregslist/<int:post_id>/delete/', methods=['GET', 'POST'])
+@app.route('/gregslist/<super_category>/<category>/delete<int:post_id>/', methods=['GET', 'POST'])
 @login_required
 @owner_filter
 @ownership_required
-def deletePost(post_id, post):
+def deletePost(super_category, category, post_id, post):
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		category_id = post.category_id
@@ -374,11 +378,11 @@ def deletePost(post_id, post):
 	else:
 		return render_template('delete-item.html', post=post)
 
-@app.route('/gregslist/<int:post_id>/edit/', methods=['GET', 'POST'])
+@app.route('/gregslist/<super_category>/<category>/edit/<int:post_id>/', methods=['GET', 'POST'])
 @login_required
 @owner_filter
 @ownership_required
-def editPost(post_id, post):
+def editPost(super_category, category, post_id, post):
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		post.title = request.form['title']
@@ -473,6 +477,10 @@ def utility_processor():
 		return render_template('job-specific-form.html', params=params)
 	def render_job_specific_items(post):
 		return render_template('job-specific-items.html', post=post)
+	def render_stuff_specific_items(post):
+		return render_template('stuff-specific-items.html', post=post)
+	def render_space_specific_items(post):
+		return render_template('space-specific-items.html', post=post)
 	def login_provider():
 		if 'provider' in login_session:
 			return login_session['provider']
@@ -482,6 +490,8 @@ def utility_processor():
 				render_links_and_scripts=render_links_and_scripts,
 				render_job_specific_form=render_job_specific_form,
 				render_job_specific_items=render_job_specific_items,
+				render_stuff_specific_items=render_stuff_specific_items,
+				render_space_specific_items=render_space_specific_items,
 				render_categories=render_categories,
 				render_categories_mini=render_categories_mini)
 
