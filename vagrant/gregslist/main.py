@@ -314,22 +314,38 @@ def fbdisconnect():
 @app.route('/gregslist/')
 def mainPage():
 	login_session['current_url'] = request.url
-	job_categories = jobCategories(pagefunc='showJobCategory')
-	return render_template('index.html', job_categories=job_categories)
+	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
+	# stuff_categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
+	# space_categories = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
+	super_categories = {"jobs" : job_categories}
+	return render_template('index.html', 
+							super_categories=super_categories)
 
-@app.route('/gregslist/<int:category_id>/job-category/')
-def showJobCategory(category_id):
-	login_session['current_url'] = request.url
-	job_categories = jobCategories(pagefunc='showJobCategory',
-								   mini=True,
-								   highlight=category_id)
-	job_posts = session.query(JobPost).filter_by(category_id=category_id).order_by(JobPost.title)
-	return render_template('specific-category.html', job_categories=job_categories, posts=job_posts)
+@app.route('/gregslist/<super_category>/<category>/')
+def showCategory(super_category, category):
+	if super_category == "jobs":
+		category_entry = session.query(JobCategory).filter_by(name=category).one()
+		posts = session.query(JobPost).filter_by(category_id=category_entry.id).order_by(JobPost.title)
+		categories = session.query(JobCategory).order_by(asc(JobCategory.name))
+	elif super_category == "stuff":
+		category_entry = session.query(StuffCategory).filter_by(name=category).one()
+		posts = session.query(StuffPost).filter_by(category_id=category_entry.id).order_by(SpacePost.title)
+		categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
+	elif super_category == "space":
+		category_entry = session.query(SpaceCategory).filter_by(name=category).one()
+		posts = session.query(SpacePost).filter_by(category_id=category_entry.id).order_by(SpacebPost.title)
+		categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
+	if category_entry and categories and posts:
+		return render_template('specific-category.html', 
+								posts=posts,
+								category_entry=category_entry,
+								categories=categories,
+								super_category=super_category)
 
 
-@app.route('/gregslist/<int:post_id>/post/')
+@app.route('/gregslist/job/<category>/post/<int:post_id>')
 @owner_filter
-def showJobPost(post_id, post, is_owner):
+def showJobPost(post_id, category, post, is_owner):
 	login_session['current_url'] = request.url
 	return render_template('specific-item.html', post=post, is_owner=is_owner, post_type="job")
 
@@ -434,6 +450,15 @@ def utility_processor():
 		return render_template('links-and-scripts.html')
 	def render_flashed_message():
 		return render_template('flashed-messages.html')
+	def render_categories(super_category, categories):
+		return render_template('categories.html',
+							    super_category=super_category,
+							    categories=categories)
+	def render_categories_mini(super_category, categories, highlight_id):
+		return render_template("categories-mini.html", 
+								super_category=super_category,
+								categories=categories,
+								highlight_id=highlight_id)
 	def render_job_specific_form(params):
 		return render_template('job-specific-form.html', params=params)
 	def render_job_specific_items(post):
@@ -446,7 +471,9 @@ def utility_processor():
 				render_nav_bar=render_nav_bar,
 				render_links_and_scripts=render_links_and_scripts,
 				render_job_specific_form=render_job_specific_form,
-				render_job_specific_items=render_job_specific_items)
+				render_job_specific_items=render_job_specific_items,
+				render_categories=render_categories,
+				render_categories_mini=render_categories_mini)
 
 def createUser(login_session):
 	""" add user to the db """

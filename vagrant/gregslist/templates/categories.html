@@ -1,0 +1,10 @@
+      {% if categories %}
+      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-4 box">
+        <h1 class="align-to-categories">{{ super_category }}</h1>
+        <div class="list-group">
+          {% for category in categories %}
+          <a href="{{url_for('showCategory', super_category=super_category, category=category.name)}}"" class="list-group-item list-group-item-action">{{ category.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}

@@ -2,7 +2,9 @@
 {% block content %}
 {{ render_flashed_message() | safe }}
     <div class="row">
-      {{ job_categories | safe }}
+      {% for key in super_categories %}
+      {{ render_categories(key, super_categories[key]) | safe }}
+      {% endfor %}
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-4 box">
         <h1 class="align-to-categories">stuff</h1>
         <div class="list-group">
