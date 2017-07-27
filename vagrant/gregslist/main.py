@@ -33,6 +33,14 @@ session = DBSession()
 
 app = Flask(__name__)
 
+def get_super_category(category):
+	if category == "jobs":
+		return JobCategory
+	if category == "stuff":
+		return StuffCategory
+	if category == "space":
+		return SpaceCategory
+
 def add_categories(func):
 	"""
 	A decorator to add Jobs, Stuff, or Space categories
@@ -41,25 +49,41 @@ def add_categories(func):
 	@wraps(func)
 	def wrap(*args, **kwargs):
 		if 'super_category' in kwargs:
-			cat = kwargs['super_category']
-			if cat == "jobs":
-				table = JobCategory
-			if cat == "stuff":
-				table = StuffCategory
-			if cat == "space":
-				table = SpaceCategory
+			sup = kwargs['super_category']
+			table = get_super_category(sup)
 			try:
 				categories = session.query(table).order_by(asc(table.name))
 				kwargs['categories'] = categories
 			except:
-				flash("[warning]There was a problem retrieving the %s category" % cat)
+				flash("[warning]There was a problem retrieving the %s categories" % sup)
 				return redirect(login_session['current_url'])
 		if not 'categories' in kwargs:
-			flash("[warning]There was a problem retrieving the category")
+			flash("[warning]There was a problem retrieving the categories")
 			return redirect(login_session['current_url'])
 		return func(*args, **kwargs)
 	return wrap
 
+def add_specific_category(func):
+	"""
+	A decorator to add the specific Jobs, Stuff, or Space
+	category to the fuction's arguments as needed
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		if 'super_category' in kwargs and 'category' in kwargs:
+			cat = kwargs['category']
+			table = get_super_category(kwargs['super_category'])
+			try:
+				category = session.query(table).filter_by(name=cat).one()
+				kwargs['category_entry'] = category
+			except:
+				flash("[warning]There was a problem retrieving the %s category" % cat)
+				return redirect(login_session['current_url'])
+		if not 'category_entry' in kwargs:
+			flash("[warning]There was a problem retrieving the category")
+			return redirect(login_session['current_url'])
+		return func(*args, **kwargs)
+	return wrap
 
 def login_required(func):
 	"""
@@ -361,7 +385,7 @@ def mainPage():
 
 @app.route('/gregslist/<super_category>/<category>/')
 @add_categories
-def showCategory(super_category, category, categories):
+def showPosts(super_category, category, categories):
 	if super_category == "jobs":
 		category_entry = session.query(JobCategory).filter_by(name=category).one()
 		posts = session.query(JobPost).filter_by(category_id=category_entry.id).order_by(JobPost.title)
@@ -396,11 +420,10 @@ def showSpecificPost(super_category, post_id, category, post, is_owner):
 def deletePost(super_category, category, post_id, post):
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
-		category_id = post.category_id
 		session.delete(post)
 		flash('[info]"%s" has been deleted' % post.title)
 		session.commit()
-		return redirect(url_for('showJobCategory', category_id=category_id))
+		return redirect(url_for('showPosts', super_category=super_category, category=category))
 	else:
 		return render_template('delete-item.html', post=post)
 
@@ -408,105 +431,178 @@ def deletePost(super_category, category, post_id, post):
 @login_required
 @owner_filter
 @ownership_required
-def editPost(super_category, category, post_id, post):
+@add_specific_category
+def editPost(super_category, category, post_id, post, category_entry):
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
-		post.title = request.form['title']
-		post.description = request.form['description']
-		flash('[success]"%s" successfully edited' % post.title)
-		session.commit()
-		return redirect(url_for('showJobPost', post_id=post_id))
+		updated_post = make_post_entry(super_category, request, category_entry)
+		try:
+			session.delete(post)
+			updated_post.id = post_id
+			session.add(updated_post)
+			session.commit()
+			msg = '[success]update succesful'
+			flash(msg)
+			return redirect(url_for('showSpecificPost', 
+								     super_category=super_category, 
+								     category=category, 
+								     post_id=post_id))
+		except:
+			msg = '[warning]An unknown problem prevented "%s" from being updated'
+			flash(msg % request.form['title'])
+			return redirect(request.url)
 	else:
+		if super_category == "jobs":
+			params = {"pay" : post.pay, "hours" : post.hours}
+		if super_category == "stuff":
+			params = {"price" : post.price}
+		if super_category == "space":
+			params = {"price" : post.price, "street" : post.street, 
+					  "city" : post.city, "state" : post.state, "zip" : post.zip}
 		return render_template('create-or-edit.html',
-								form_type="job",
+								super_category=super_category,
 								title=post.title,
 								description=post.description,
-								params={"pay" : post.pay, "hours" : post.hours})
+								params=params)
 
 @app.route('/gregslist/choose/category/', methods=['GET', 'POST'])
 @login_required
-def newPostCategorySelect():
+def newPostSuperCategorySelect():
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		if 'jobs' in request.form:
-			return redirect(url_for('newPostSubCategorySelect', super_category='jobs'))
+			return redirect(url_for('newPostCategorySelect', super_category='jobs'))
 		if 'stuff' in request.form:
-			return redirect(url_for('newPostSubCategorySelect', super_category='stuff'))
+			return redirect(url_for('newPostCategorySelect', super_category='stuff'))
 		if 'space' in request.form:
-			return redirect(url_for('newPostSubCategorySelect', super_category='space'))
+			return redirect(url_for('newPostCategorySelect', super_category='space'))
 	else:
 		return render_template('super-category-select.html')
 
 @app.route('/gregslist/<super_category>/select-category/', methods=['GET', 'POST'])
 @login_required
 @add_categories
-def newPostSubCategorySelect(super_category, categories):
+def newPostCategorySelect(super_category, categories):
 	login_session['current_url'] = request.url
 	return render_template('category-select.html',
 							super_category=super_category,
-							categories=categories)
+							categories=categories,
+							link_func='newPostForm')
 
-@app.route('/gregslist/<int:category_id>/new/job/', methods=['GET', 'POST'])
+@app.route('/gregslist/<super_category>/<category>/new/', methods=['GET', 'POST'])
 @login_required
-def newJobForm(category_id):
+@add_specific_category
+def newPostForm(super_category, category, category_entry):
 	login_session['current_url'] = request.url
-	job_category = session.query(JobCategory).filter_by(id=category_id).one()
 	if request.method == 'POST':
-		job_post = JobPost(title=request.form['title'],
-						   description=request.form['description'],
-						   pay=request.form['pay'],
-						   hours=request.form['hours'],
-						   category_id=category_id,
-						   user_id=login_session['user_id'])
-		flash('[success]"%s" successfully added' % request.form['title'])
-		session.add(job_post)
-		session.commit()
-		return redirect(url_for('mainPage'))
+		post = make_post_entry(super_category, request, category_entry)
+		try:
+			msg = '[success]"%s" successfully added'
+			flash(msg % request.form['title'])
+			session.add(post)
+			session.commit()
+			return redirect(url_for('mainPage'))
+		except:
+			msg = '[warning]An unknown problem prevented "%s" from being added'
+			flash(msg % request.form['title'])
+			return redirect(request.url)
 	else:
+		if super_category == "jobs":
+			params = {"pay" : "", "hours" : ""}
+		if super_category == "stuff":
+			params = {"price" : ""}
+		if super_category == "space":
+			params = {"price" : "", "street" : "", 
+					  "city" : "", "state" : "", "zip" : ""}
 		return render_template('create-or-edit.html',
-								form_type="job",
+								super_category=super_category,
 								title="",
 								description="",
-								params={"pay" : "", "hours" : ""})
+								params=params)
+
+
+def make_post_entry(super_category, request, category_entry):
+	title =       request.form['title']
+	description = request.form['description']
+	user_id =     login_session['user_id']
+	category_id = category_entry.id
+	if super_category == 'jobs':
+		pay =   request.form['pay']
+		hours = request.form['hours']
+		return JobPost(title=title,
+					   description=description,
+					   pay=pay,
+					   hours=hours,
+					   category_id=category_id,
+					   user_id=user_id)
+	elif super_category == 'stuff':
+		price = request.form['price']
+		return StuffPost(title=title,
+						 description=description,
+						 price=price,
+						 category_id=category_id,
+						 user_id=user_id)
+	elif super_category == 'space':
+		price =  request.form['price']
+		street = request.form['street']
+		city =   request.form['city']
+		state =  request.form['state']
+		zip =    request.form['zip']
+		return SpacePost(title=title,
+						 description=description,
+						 price=price,
+						 street=street,
+						 city=city,
+						 state=state,
+						 zip=zip,
+						 category_id=category_id,
+						 user_id=user_id)
 
 @app.context_processor
 def utility_processor():
-	def render_nav_bar():
+	def nav_bar():
 		return render_template('nav-bar.html')
-	def render_links_and_scripts():
+	def links_and_scripts():
 		return render_template('links-and-scripts.html')
-	def render_flashed_message():
+	def flashed_message():
 		return render_template('flashed-messages.html')
-	def render_categories(super_category, categories):
+	def categories(super_category, categories, link_func):
 		return render_template('categories.html',
 							    super_category=super_category,
-							    categories=categories)
-	def render_categories_mini(super_category, categories, highlight_id):
+							    categories=categories,
+							    link_func=link_func)
+	def categories_mini(super_category, categories, highlight_id):
 		return render_template("categories-mini.html",
 								super_category=super_category,
 								categories=categories,
 								highlight_id=highlight_id)
-	def render_job_specific_form(params):
-		return render_template('job-specific-form.html', params=params)
-	def render_job_specific_items(post):
+	def job_specific_form(params):
+		return render_template('job-specific-form.html', **params)
+	def stuff_specific_form(params):
+		return render_template('stuff-specific-form.html', **params)
+	def space_specific_form(params):
+		return render_template('space-specific-form.html', **params)
+	def job_specific_items(post):
 		return render_template('job-specific-items.html', post=post)
-	def render_stuff_specific_items(post):
+	def stuff_specific_items(post):
 		return render_template('stuff-specific-items.html', post=post)
-	def render_space_specific_items(post):
+	def space_specific_items(post):
 		return render_template('space-specific-items.html', post=post)
 	def login_provider():
 		if 'provider' in login_session:
 			return login_session['provider']
-	return dict(render_flashed_message=render_flashed_message,
+	return dict(render_flashed_message=flashed_message,
 				login_provider=login_provider,
-				render_nav_bar=render_nav_bar,
-				render_links_and_scripts=render_links_and_scripts,
-				render_job_specific_form=render_job_specific_form,
-				render_job_specific_items=render_job_specific_items,
-				render_stuff_specific_items=render_stuff_specific_items,
-				render_space_specific_items=render_space_specific_items,
-				render_categories=render_categories,
-				render_categories_mini=render_categories_mini)
+				render_nav_bar=nav_bar,
+				render_links_and_scripts=links_and_scripts,
+				render_job_specific_form=job_specific_form,
+				render_stuff_specific_form=stuff_specific_form,
+				render_space_specific_form=space_specific_form,
+				render_job_specific_items=job_specific_items,
+				render_stuff_specific_items=stuff_specific_items,
+				render_space_specific_items=space_specific_items,
+				render_categories=categories,
+				render_categories_mini=categories_mini)
 
 def createUser(login_session):
 	""" add user to the db """

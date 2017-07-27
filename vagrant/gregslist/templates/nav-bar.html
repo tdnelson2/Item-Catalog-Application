@@ -3,7 +3,7 @@
       <div class="navbar-header">
         <a class="navbar-brand" href="{{url_for('mainPage')}}">gregslist</a>
       </div>
-      <form action="{{ url_for('newPostCategorySelect') }}">
+      <form action="{{ url_for('newPostSuperCategorySelect') }}">
         <ul class="nav navbar-nav navbar-right">
           <li><a href="#"><span class="glyphicon glyphicon-user"></span> sign up</a></li>
           {% with provider = login_provider() %}

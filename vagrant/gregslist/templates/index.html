@@ -3,7 +3,7 @@
 {{ render_flashed_message() | safe }}
     <div class="row">
       {% for key in super_categories %}
-      {{ render_categories(key, super_categories[key]) | safe }}
+      {{ render_categories(super_category=key, categories=super_categories[key], link_func='showPosts') | safe }}
       {% endfor %}
     </div>
 {% endblock %}

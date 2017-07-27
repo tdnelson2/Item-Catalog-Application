@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 {{ render_flashed_message() | safe }}
-    <h2>choose as sub-category</h2>
+    <h2>choose a sub-category</h2>
     <div class="row">
-      {{ render_categories('', categories) | safe }}
+      {{ render_categories(super_category=super_category, categories=categories, link_func=link_func) | safe }}
     </div>
 {% endblock %}
