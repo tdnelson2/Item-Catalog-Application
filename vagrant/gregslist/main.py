@@ -33,6 +33,34 @@ session = DBSession()
 
 app = Flask(__name__)
 
+def add_categories(func):
+	"""
+	A decorator to add Jobs, Stuff, or Space categories
+	to the fuction's arguments as needed
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		if 'super_category' in kwargs:
+			cat = kwargs['super_category']
+			if cat == "jobs":
+				table = JobCategory
+			if cat == "stuff":
+				table = StuffCategory
+			if cat == "space":
+				table = SpaceCategory
+			try:
+				categories = session.query(table).order_by(asc(table.name))
+				kwargs['categories'] = categories
+			except:
+				flash("[warning]There was a problem retrieving the %s category" % cat)
+				return redirect(login_session['current_url'])
+		if not 'categories' in kwargs:
+			flash("[warning]There was a problem retrieving the category")
+			return redirect(login_session['current_url'])
+		return func(*args, **kwargs)
+	return wrap
+
+
 def login_required(func):
 	"""
 	A decorator to confirm login or redirect as needed
@@ -325,28 +353,26 @@ def mainPage():
 	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
 	stuff_categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
 	space_categories = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
-	super_categories = {"jobs" : job_categories, 
-						"stuff" : stuff_categories, 
+	super_categories = {"jobs" : job_categories,
+						"stuff" : stuff_categories,
 						"space" : space_categories}
-	return render_template('index.html', 
+	return render_template('index.html',
 							super_categories=super_categories)
 
 @app.route('/gregslist/<super_category>/<category>/')
-def showCategory(super_category, category):
+@add_categories
+def showCategory(super_category, category, categories):
 	if super_category == "jobs":
 		category_entry = session.query(JobCategory).filter_by(name=category).one()
 		posts = session.query(JobPost).filter_by(category_id=category_entry.id).order_by(JobPost.title)
-		categories = session.query(JobCategory).order_by(asc(JobCategory.name))
 	elif super_category == "stuff":
 		category_entry = session.query(StuffCategory).filter_by(name=category).one()
 		posts = session.query(StuffPost).filter_by(category_id=category_entry.id).order_by(StuffPost.title)
-		categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
 	elif super_category == "space":
 		category_entry = session.query(SpaceCategory).filter_by(name=category).one()
 		posts = session.query(SpacePost).filter_by(category_id=category_entry.id).order_by(SpacePost.title)
-		categories = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
 	if category_entry and categories and posts:
-		return render_template('specific-category.html', 
+		return render_template('specific-category.html',
 								posts=posts,
 								category_entry=category_entry,
 								categories=categories,
@@ -357,10 +383,10 @@ def showCategory(super_category, category):
 @owner_filter
 def showSpecificPost(super_category, post_id, category, post, is_owner):
 	login_session['current_url'] = request.url
-	return render_template('specific-item.html', 
-							post=post, 
-							is_owner=is_owner, 
-							super_category=super_category, 
+	return render_template('specific-item.html',
+							post=post,
+							is_owner=is_owner,
+							super_category=super_category,
 							category=category)
 
 @app.route('/gregslist/<super_category>/<category>/delete<int:post_id>/', methods=['GET', 'POST'])
@@ -403,21 +429,22 @@ def newPostCategorySelect():
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		if 'jobs' in request.form:
-			return redirect(url_for('newPostSubCategorySelect', category='jobs'))
+			return redirect(url_for('newPostSubCategorySelect', super_category='jobs'))
 		if 'stuff' in request.form:
-			return redirect(url_for('newPostSubCategorySelect', category='stuff'))
+			return redirect(url_for('newPostSubCategorySelect', super_category='stuff'))
 		if 'space' in request.form:
-			return redirect(url_for('newPostSubCategorySelect', category='space'))
+			return redirect(url_for('newPostSubCategorySelect', super_category='space'))
 	else:
-		return render_template('category-select.html')
+		return render_template('super-category-select.html')
 
-@app.route('/gregslist/<category>/choose/sub-category', methods=['GET', 'POST'])
+@app.route('/gregslist/<super_category>/select-category/', methods=['GET', 'POST'])
 @login_required
-def newPostSubCategorySelect(category):
+@add_categories
+def newPostSubCategorySelect(super_category, categories):
 	login_session['current_url'] = request.url
-	if category == 'jobs':
-		job_categories = jobCategories(pagefunc='newJobForm')
-		return render_template('sub-category-select.html', job_categories=job_categories)
+	return render_template('category-select.html',
+							super_category=super_category,
+							categories=categories)
 
 @app.route('/gregslist/<int:category_id>/new/job/', methods=['GET', 'POST'])
 @login_required
@@ -442,20 +469,6 @@ def newJobForm(category_id):
 								description="",
 								params={"pay" : "", "hours" : ""})
 
-
-
-def jobCategories(pagefunc='showJobCategory', mini=False, highlight=""):
-	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
-	if mini:
-		return render_template('job-categories-mini.html',
-								job_categories=job_categories,
-								pagefunc=pagefunc,
-								current_category_id=highlight)
-	else:
-		return render_template('job-categories.html',
-								job_categories=job_categories,
-								pagefunc=pagefunc)
-
 @app.context_processor
 def utility_processor():
 	def render_nav_bar():
@@ -469,7 +482,7 @@ def utility_processor():
 							    super_category=super_category,
 							    categories=categories)
 	def render_categories_mini(super_category, categories, highlight_id):
-		return render_template("categories-mini.html", 
+		return render_template("categories-mini.html",
 								super_category=super_category,
 								categories=categories,
 								highlight_id=highlight_id)
@@ -484,7 +497,7 @@ def utility_processor():
 	def login_provider():
 		if 'provider' in login_session:
 			return login_session['provider']
-	return dict(render_flashed_message=render_flashed_message, 
+	return dict(render_flashed_message=render_flashed_message,
 				login_provider=login_provider,
 				render_nav_bar=render_nav_bar,
 				render_links_and_scripts=render_links_and_scripts,
