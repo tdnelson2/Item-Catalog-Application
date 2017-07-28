@@ -49,6 +49,20 @@ def get_post_table(category):
 	if category == "space":
 		return SpacePost
 
+def add_entries_from_all_categories(func):
+	"""
+	A decorator to add all JobCategory, StuffCategory, 
+	and SpaceCategory entries to the fuction's arguments
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		kwargs['job_categories'] = session.query(JobCategory).order_by(asc(JobCategory.name))
+		kwargs['stuff_categories'] = session.query(StuffCategory).order_by(asc(StuffCategory.name))
+		kwargs['space_categories'] = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
+		return func(*args, **kwargs)
+	return wrap
+
+
 def add_categories(func):
 	"""
 	A decorator to add Jobs, Stuff, or Space categories
@@ -81,12 +95,9 @@ def add_specific_category(func):
 		if 'super_category' in kwargs and 'category' in kwargs:
 			cat = kwargs['category']
 			cat_table = get_category_table(kwargs['super_category'])
-			post_table = get_post_table(kwargs['super_category'])
 			try:
-				category = category_entry = session.query(cat_table).filter_by(name=category).one()
-				posts = session.query(post_table).filter_by(category_id=category.id).order_by(post_table.title)
+				category = category_entry = session.query(cat_table).filter_by(name=cat).one()
 				kwargs['category_entry'] = category
-				kwargs['post_entries'] = posts
 			except:
 				flash("[warning]There was a problem retrieving the %s category" % cat)
 				return redirect(login_session['current_url'])
@@ -98,16 +109,51 @@ def add_specific_category(func):
 
 def add_posts(func):
 	"""
-	A decorator to add the specific Jobs, Stuff, or Space
+	A decorator to add Job, Stuff, or Space
 	posts to the fuction's arguments as needed
 	"""
 	@wraps(func)
 	def wrap(*args, **kwargs):
-		if 'super_category' in kwargs and 'category' in kwargs:
+		print kwargs
+		if 'super_category' in kwargs and 'category' in kwargs and 'category_entry' in kwargs:
+			sup = kwargs['super_category']
 			cat = kwargs['category']
-			table = get_post_table(kwargs['super_category'])
+			category_entry = kwargs['category_entry']
+			post_table = get_post_table(sup)
 			try:
-				posts = session.query(table).
+				posts = session.query(post_table).filter_by(category_id=category_entry.id).order_by(asc(post_table.title))
+				kwargs['post_entries'] = posts
+			except:
+				msg = "[warning]There was a problem retrieving posts from %s/%s"
+				flash(msg % (cat, sup))
+				return redirect(login_session['current_url'])
+		if not 'post_entries' in kwargs:
+			flash("[warning]There was a problem retrieving the posts")
+			return redirect(login_session['current_url'])
+		return func(*args, **kwargs)
+	return wrap
+
+def add_specific_post(func):
+	"""
+	A decorator to add a specific post
+	entry to the function's arguments
+	if super_category and post_id can be found
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		if 'post_id' in kwargs and 'super_category' in kwargs:
+			id = kwargs['post_id']
+			sup = kwargs['super_category']
+			post_table = get_post_table(sup)
+			try:
+				kwargs['post_entry'] = session.query(post_table).filter_by(id=id).one()
+			except:
+				print '[warning]Specific post could not be found'
+		if not 'post_entry' in kwargs:
+			flash('[warning]Specific post could not be found')
+		return func(*args, **kwargs)
+	return wrap
+
 
 
 def login_required(func):
@@ -136,25 +182,12 @@ def owner_filter(func):
 	def wrap(*args, **kwargs):
 		# if all tests fail, current user is not owner
 		kwargs['is_owner'] = False
-		if 'post_id' in kwargs and 'super_category' in kwargs:
-			sup = kwargs['super_category']
-			if sup == "jobs":
-				table = JobPost
-			if sup == "stuff":
-				table = StuffPost
-			if sup == "space":
-				table = SpacePost
-			try:
-				post = session.query(table).filter_by(id=kwargs['post_id']).one()
-				kwargs["post"] = post
-			except:
-				flash("[warning]This post does not exist")
-				print "Will REDIRECT " + login_session['current_url']
-				return redirect(login_session['current_url'])
+		if 'post_entry' in kwargs:
+			post = kwargs['post_entry']
 			if 'user_id' in login_session and post.user_id == login_session['user_id']:
 					# current user created this post
 					kwargs["is_owner"] = True
-					return func(*args, **kwargs)
+		print kwargs
 		return func(*args, **kwargs)
 	return wrap
 
@@ -397,50 +430,60 @@ def fbdisconnect():
 # Show all posts
 @app.route('/')
 @app.route('/gregslist/')
-def mainPage():
+@add_entries_from_all_categories
+def mainPage(job_categories, stuff_categories, space_categories):
 	login_session['current_url'] = request.url
-	job_categories = session.query(JobCategory).order_by(asc(JobCategory.name))
-	stuff_categories = session.query(StuffCategory).order_by(asc(StuffCategory.name))
-	space_categories = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
 	super_categories = {"jobs" : job_categories,
 						"stuff" : stuff_categories,
 						"space" : space_categories}
 	return render_template('index.html',
 							super_categories=super_categories)
 
+
+@app.route('/gregslist/JSON/')
+@add_entries_from_all_categories
+def mainJSON(job_categories, stuff_categories, space_categories):
+	jobs = [entry.serialize for entry in job_categories]
+	stuff = [entry.serialize for entry in stuff_categories]
+	space = [entry.serialize for entry in space_categories]
+	return jsonify(Categories=[{"Jobs" : jobs}, {"Stuff" : stuff}, {"Space" : space}])
+
+
 @app.route('/gregslist/<super_category>/<category>/')
 @add_categories
-def showPosts(super_category, category, categories):
-	if super_category == "jobs":
-		category_entry = session.query(JobCategory).filter_by(name=category).one()
-		posts = session.query(JobPost).filter_by(category_id=category_entry.id).order_by(JobPost.title)
-	elif super_category == "stuff":
-		category_entry = session.query(StuffCategory).filter_by(name=category).one()
-		posts = session.query(StuffPost).filter_by(category_id=category_entry.id).order_by(StuffPost.title)
-	elif super_category == "space":
-		category_entry = session.query(SpaceCategory).filter_by(name=category).one()
-		posts = session.query(SpacePost).filter_by(category_id=category_entry.id).order_by(SpacePost.title)
-	if category_entry and categories and posts:
-		return render_template('specific-category.html',
-								posts=posts,
-								category_entry=category_entry,
-								categories=categories,
-								super_category=super_category)
+@add_specific_category
+@add_posts
+def showPosts(super_category, category, categories, category_entry, post_entries):
+	return render_template('specific-category.html',
+							posts=post_entries,
+							category_entry=category_entry,
+							categories=categories,
+							super_category=super_category)
 
 @app.route('/gregslist/<super_category>/<category>/JSON/')
-def postsJSON(super_category, category):
+@add_specific_category
+@add_posts
+def postsJSON(super_category, category, category_entry, post_entries):
+	return jsonify(Posts=[entry.serialize for entry in post_entries])
+
 
 
 
 @app.route('/gregslist/<super_category>/<category>/post/<int:post_id>/')
+@add_specific_post
 @owner_filter
-def showSpecificPost(super_category, post_id, category, post, is_owner):
+def showSpecificPost(super_category, post_id, category, post_entry, is_owner):
 	login_session['current_url'] = request.url
 	return render_template('specific-item.html',
-							post=post,
+							post=post_entry,
 							is_owner=is_owner,
 							super_category=super_category,
 							category=category)
+
+@app.route('/gregslist/<super_category>/<category>/post/<int:post_id>/JSON/')
+@add_specific_post
+def specificPostJSON(super_category, post_id, category, post_entry):
+	return jsonify(Post=post_entry.serialize)
 
 @app.route('/gregslist/<super_category>/<category>/delete/<int:post_id>/', methods=['GET', 'POST'])
 @login_required
