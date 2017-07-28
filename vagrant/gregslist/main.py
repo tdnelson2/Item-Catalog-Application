@@ -33,13 +33,21 @@ session = DBSession()
 
 app = Flask(__name__)
 
-def get_super_category(category):
+def get_category_table(category):
 	if category == "jobs":
 		return JobCategory
 	if category == "stuff":
 		return StuffCategory
 	if category == "space":
 		return SpaceCategory
+
+def get_post_table(category):
+	if category == "jobs":
+		return JobPost
+	if category == "stuff":
+		return StuffPost
+	if category == "space":
+		return SpacePost
 
 def add_categories(func):
 	"""
@@ -50,7 +58,7 @@ def add_categories(func):
 	def wrap(*args, **kwargs):
 		if 'super_category' in kwargs:
 			sup = kwargs['super_category']
-			table = get_super_category(sup)
+			table = get_category_table(sup)
 			try:
 				categories = session.query(table).order_by(asc(table.name))
 				kwargs['categories'] = categories
@@ -72,10 +80,13 @@ def add_specific_category(func):
 	def wrap(*args, **kwargs):
 		if 'super_category' in kwargs and 'category' in kwargs:
 			cat = kwargs['category']
-			table = get_super_category(kwargs['super_category'])
+			cat_table = get_category_table(kwargs['super_category'])
+			post_table = get_post_table(kwargs['super_category'])
 			try:
-				category = session.query(table).filter_by(name=cat).one()
+				category = category_entry = session.query(cat_table).filter_by(name=category).one()
+				posts = session.query(post_table).filter_by(category_id=category.id).order_by(post_table.title)
 				kwargs['category_entry'] = category
+				kwargs['post_entries'] = posts
 			except:
 				flash("[warning]There was a problem retrieving the %s category" % cat)
 				return redirect(login_session['current_url'])
@@ -84,6 +95,20 @@ def add_specific_category(func):
 			return redirect(login_session['current_url'])
 		return func(*args, **kwargs)
 	return wrap
+
+def add_posts(func):
+	"""
+	A decorator to add the specific Jobs, Stuff, or Space
+	posts to the fuction's arguments as needed
+	"""
+	@wraps(func)
+	def wrap(*args, **kwargs):
+		if 'super_category' in kwargs and 'category' in kwargs:
+			cat = kwargs['category']
+			table = get_post_table(kwargs['super_category'])
+			try:
+				posts = session.query(table).
+
 
 def login_required(func):
 	"""
@@ -402,6 +427,10 @@ def showPosts(super_category, category, categories):
 								categories=categories,
 								super_category=super_category)
 
+@app.route('/gregslist/<super_category>/<category>/JSON/')
+def postsJSON(super_category, category):
+
+
 
 @app.route('/gregslist/<super_category>/<category>/post/<int:post_id>/')
 @owner_filter
@@ -413,7 +442,7 @@ def showSpecificPost(super_category, post_id, category, post, is_owner):
 							super_category=super_category,
 							category=category)
 
-@app.route('/gregslist/<super_category>/<category>/delete<int:post_id>/', methods=['GET', 'POST'])
+@app.route('/gregslist/<super_category>/<category>/delete/<int:post_id>/', methods=['GET', 'POST'])
 @login_required
 @owner_filter
 @ownership_required
@@ -443,9 +472,9 @@ def editPost(super_category, category, post_id, post, category_entry):
 			session.commit()
 			msg = '[success]update succesful'
 			flash(msg)
-			return redirect(url_for('showSpecificPost', 
-								     super_category=super_category, 
-								     category=category, 
+			return redirect(url_for('showSpecificPost',
+								     super_category=super_category,
+								     category=category,
 								     post_id=post_id))
 		except:
 			msg = '[warning]An unknown problem prevented "%s" from being updated'
@@ -457,7 +486,7 @@ def editPost(super_category, category, post_id, post, category_entry):
 		if super_category == "stuff":
 			params = {"price" : post.price}
 		if super_category == "space":
-			params = {"price" : post.price, "street" : post.street, 
+			params = {"price" : post.price, "street" : post.street,
 					  "city" : post.city, "state" : post.state, "zip" : post.zip}
 		return render_template('create-or-edit.html',
 								super_category=super_category,
@@ -512,7 +541,7 @@ def newPostForm(super_category, category, category_entry):
 		if super_category == "stuff":
 			params = {"price" : ""}
 		if super_category == "space":
-			params = {"price" : "", "street" : "", 
+			params = {"price" : "", "street" : "",
 					  "city" : "", "state" : "", "zip" : ""}
 		return render_template('create-or-edit.html',
 								super_category=super_category,

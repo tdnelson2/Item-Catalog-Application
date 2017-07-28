@@ -22,6 +22,14 @@ class JobCategory(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
+    @property
+    def serialize(self):
+        return {
+            'id' : self.id,
+            'name' : self.name,
+            'user_id' : self.user_id
+        }
+
 
 class StuffCategory(Base):
     __tablename__ = 'stuff_category'
@@ -31,6 +39,14 @@ class StuffCategory(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
+    @property
+    def serialize(self):
+        return {
+            'id' : self.id,
+            'name' : self.name,
+            'user_id' : self.user_id
+        }
+
 
 class SpaceCategory(Base):
     __tablename__ = 'space_category'
@@ -39,6 +55,14 @@ class SpaceCategory(Base):
     name = Column(String(250), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
+
+    @property
+    def serialize(self):
+        return {
+            'id' : self.id,
+            'name' : self.name,
+            'user_id' : self.user_id
+        }
 
 class JobPost(Base):
     __tablename__ = 'job_post'
@@ -53,6 +77,18 @@ class JobPost(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
+    @property
+    def serialize(self):
+        return {
+            'id' : self.id,
+            'title' : self.title,
+            'description' : self.description,
+            'pay' : self.pay,
+            'hours' : self.hours,
+            'category_id' : self.category_id,
+            'user_id' : self.user_id
+        }
+
 class StuffPost(Base):
     __tablename__ = 'stuff_post'
 
@@ -64,6 +100,17 @@ class StuffPost(Base):
     category = relationship(StuffCategory)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
+
+    @property
+    def serialize(self):
+        return {
+            'id' : self.id,
+            'title' : self.title,
+            'description' : self.description,
+            'price' : self.price,
+            'category_id' : self.category_id,
+            'user_id' : self.user_id
+        }
 
 class SpacePost(Base):
     __tablename__ = 'space_post'
@@ -80,6 +127,21 @@ class SpacePost(Base):
     category = relationship(SpaceCategory)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
+
+    @property
+    def serialize(self):
+        return {
+            'id' : self.id,
+            'title' : self.title,
+            'description' : self.description,
+            'price' : self.price,
+            'street' : self.street,
+            'city' : self.city,
+            'state' : self.state,
+            'zip' : self.zip,
+            'category_id' : self.category_id,
+            'user_id' : self.user_id
+        }
 
 
 
