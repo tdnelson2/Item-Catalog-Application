@@ -282,6 +282,8 @@ def ownership_required(func):
 ##########################################################
 """
 OAUTH AND LOGIN PAGES
+Most of the code in this section is taken directly from
+the Udacity examples with some minor modifications
 """
 ##########################################################
 
