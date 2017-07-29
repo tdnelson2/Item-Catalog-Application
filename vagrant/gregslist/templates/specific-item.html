@@ -1,7 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 {{ render_flashed_message() | safe }}
-    <h1 class="align-to-categories">{{ post.title }}</h1>
+    <div class="row">
+    <div class="col-xs-12">
+    <h4>{{ super_category }} / {{ category }} / post</h4>
+    </div>
+    </div>
+    <div class="row">
+    <div class="col-xs-12">
+    <h1>{{ post.title }}</h1>
+    </div>
+    </div>
     {% if super_category == "jobs" %}
     {{ render_job_specific_items(post) | safe }}
     {% elif super_category == "stuff" %}

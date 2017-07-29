@@ -2,6 +2,11 @@
 {% block content %}
 {{ render_flashed_message() | safe }}
     <div class="row">
+      <div class="col-xs-12">
+        <h1>{{ super_category }} / {{ category_entry.name }}</h1>
+      </div>
+    </div>
+    <div class="row">
       {{ render_categories_mini(super_category=super_category, categories=categories, highlight_id=category_entry.id) | safe }}
       {% if posts %}
       <div class="col-xs-7 col-sm-9 col-md-9 col-lg-9 box">
