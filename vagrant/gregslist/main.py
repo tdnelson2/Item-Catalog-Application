@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
+from flask import Flask, render_template, request,\
+				  redirect, jsonify, url_for, flash
 from flask import make_response
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import sessionmaker
-from database_setup import Base, User, JobCategory, StuffCategory, SpaceCategory, JobPost, StuffPost, SpacePost
+from database_setup import Base, User, JobCategory, StuffCategory,\
+						   SpaceCategory, JobPost, StuffPost, SpacePost
 from flask import session as login_session
 import random
 import string
@@ -21,9 +23,6 @@ GOOGLE_CLIENT_ID = json.loads(
 FACEBOOK_APP_ID = json.loads(
 	open('fb_client_secrets.json', 'r').read())['web']['app_id']
 
-# decorators:
-# http://exploreflask.com/en/latest/views.html
-# @login_required
 
 # Connect to Database and create database session
 engine = create_engine('sqlite:///gregslist.db')
@@ -33,6 +32,13 @@ session = DBSession()
 
 app = Flask(__name__)
 
+##########################################################
+"""
+DECORATORS
+"""
+##########################################################
+
+# Decorator helper funcs
 def get_category_table(category):
 	if category == "jobs":
 		return JobCategory
@@ -51,14 +57,17 @@ def get_post_table(category):
 
 def add_entries_from_all_categories(func):
 	"""
-	A decorator to add all JobCategory, StuffCategory, 
+	A decorator to add all JobCategory, StuffCategory,
 	and SpaceCategory entries to the fuction's arguments
 	"""
 	@wraps(func)
 	def wrap(*args, **kwargs):
-		kwargs['job_categories'] = session.query(JobCategory).order_by(asc(JobCategory.name))
-		kwargs['stuff_categories'] = session.query(StuffCategory).order_by(asc(StuffCategory.name))
-		kwargs['space_categories'] = session.query(SpaceCategory).order_by(asc(SpaceCategory.name))
+		kwargs['job_categories'] =   session.query(JobCategory).\
+									 order_by(asc(JobCategory.name))
+		kwargs['stuff_categories'] = session.query(StuffCategory).\
+									 order_by(asc(StuffCategory.name))
+		kwargs['space_categories'] = session.query(SpaceCategory).\
+									 order_by(asc(SpaceCategory.name))
 		return func(*args, **kwargs)
 	return wrap
 
@@ -73,12 +82,16 @@ def add_categories(func):
 		if 'super_category' in kwargs:
 			sup = kwargs['super_category']
 			table = get_category_table(sup)
-			try:
-				categories = session.query(table).order_by(asc(table.name))
-				kwargs['categories'] = categories
-			except:
-				flash("[warning]There was a problem retrieving the %s categories" % sup)
-				return redirect(login_session['current_url'])
+			if table:
+				try:
+					categories = session.query(table).\
+								 order_by(asc(table.name))
+					kwargs['categories'] = categories
+				except:
+					msg = ("[warning]There was a problem "
+						   "retrieving the %s categories")
+					flash(msg % sup)
+					return redirect(login_session['current_url'])
 		if not 'categories' in kwargs:
 			flash("[warning]There was a problem retrieving the categories")
 			return redirect(login_session['current_url'])
@@ -95,12 +108,16 @@ def add_specific_category(func):
 		if 'super_category' in kwargs and 'category' in kwargs:
 			cat = kwargs['category']
 			cat_table = get_category_table(kwargs['super_category'])
-			try:
-				category = category_entry = session.query(cat_table).filter_by(name=cat).one()
-				kwargs['category_entry'] = category
-			except:
-				flash("[warning]There was a problem retrieving the %s category" % cat)
-				return redirect(login_session['current_url'])
+			if cat_table:
+				try:
+					category = session.query(cat_table).\
+							   filter_by(name=cat).one()
+					kwargs['category_entry'] = category
+				except:
+					msg = ("[warning]There was a problem "
+						   "retrieving the %s category")
+					flash(msg % cat)
+					return redirect(login_session['current_url'])
 		if not 'category_entry' in kwargs:
 			flash("[warning]There was a problem retrieving the category")
 			return redirect(login_session['current_url'])
@@ -110,23 +127,39 @@ def add_specific_category(func):
 def add_posts(func):
 	"""
 	A decorator to add Job, Stuff, or Space
-	posts to the fuction's arguments as needed
+	posts to the fuction's arguments as needed.
+
+	super_category, category, category_entry
+	must be present in order for this to work.
+	category_entry can be added by making
+	sure the add_specific_category decorator
+	proceeds this one.
 	"""
 	@wraps(func)
 	def wrap(*args, **kwargs):
-		print kwargs
-		if 'super_category' in kwargs and 'category' in kwargs and 'category_entry' in kwargs:
-			sup = kwargs['super_category']
-			cat = kwargs['category']
-			category_entry = kwargs['category_entry']
-			post_table = get_post_table(sup)
-			try:
-				posts = session.query(post_table).filter_by(category_id=category_entry.id).order_by(asc(post_table.title))
-				kwargs['post_entries'] = posts
-			except:
-				msg = "[warning]There was a problem retrieving posts from %s/%s"
-				flash(msg % (cat, sup))
-				return redirect(login_session['current_url'])
+
+		if (
+			'super_category' in kwargs
+			and
+			'category' in kwargs
+			and
+			'category_entry' in kwargs
+			):
+				sup = kwargs['super_category']
+				cat = kwargs['category']
+				category_entry = kwargs['category_entry']
+				post_table = get_post_table(sup)
+				if post_table:
+					try:
+						posts = session.query(post_table).\
+								filter_by(category_id=category_entry.id).\
+								order_by(asc(post_table.title))
+						kwargs['post_entries'] = posts
+					except:
+						msg = ("[warning]There was a problem "
+							   "retrieving posts from %s/%s")
+						flash(msg % (cat, sup))
+						return redirect(login_session['current_url'])
 		if not 'post_entries' in kwargs:
 			flash("[warning]There was a problem retrieving the posts")
 			return redirect(login_session['current_url'])
@@ -136,21 +169,29 @@ def add_posts(func):
 def add_specific_post(func):
 	"""
 	A decorator to add a specific post
-	entry to the function's arguments
-	if super_category and post_id can be found
+	entry to the function's arguments.
+
+	super_category and post_id must be in the
+	function's arguments in order for this to work.
 	"""
 	@wraps(func)
 	def wrap(*args, **kwargs):
-		if 'post_id' in kwargs and 'super_category' in kwargs:
-			id = kwargs['post_id']
-			sup = kwargs['super_category']
-			post_table = get_post_table(sup)
-			try:
-				kwargs['post_entry'] = session.query(post_table).filter_by(id=id).one()
-			except:
-				print '[warning]Specific post could not be found'
+		if ('post_id' in kwargs
+			and
+			'super_category' in kwargs
+			):
+				id = kwargs['post_id']
+				sup = kwargs['super_category']
+				post_table = get_post_table(sup)
+				if post_table:
+					try:
+						kwargs['post_entry'] = session.query(post_table).\
+											   filter_by(id=id).one()
+					except:
+						print '[warning]Specific post could not be found'
 		if not 'post_entry' in kwargs:
 			flash('[warning]Specific post could not be found')
+			return redirect(url_for('mainPage'))
 		return func(*args, **kwargs)
 	return wrap
 
@@ -163,19 +204,22 @@ def login_required(func):
 	@wraps(func)
 	def wrap(*args, **kwargs):
 		print args
-		print kwargs
+
 		if 'logged_in' in login_session:
 			return func(*args, **kwargs)
 		else:
 			flash("[warning]You need to login first")
-			print "Will REDIRECT " + login_session['current_url']
 			return redirect(login_session['current_url'])
 	return wrap
 
 def owner_filter(func):
 	"""
-	A decorator to confirm if user created the item
-	and display so page can 'edit'/'delete' buttons as needed
+	A decorator to confirm if user created the post
+	so page can 'edit'/'delete' buttons as needed.
+
+	In order for this to work, the add_specific_post
+	decorator must come before this. By doing so
+	we ensure post_entry is in the function's arguments.
 	"""
 
 	@wraps(func)
@@ -184,28 +228,53 @@ def owner_filter(func):
 		kwargs['is_owner'] = False
 		if 'post_entry' in kwargs:
 			post = kwargs['post_entry']
-			if 'user_id' in login_session and post.user_id == login_session['user_id']:
+			if ('user_id' in login_session
+				and
+				post.user_id == login_session['user_id']):
 					# current user created this post
 					kwargs["is_owner"] = True
-		print kwargs
+
 		return func(*args, **kwargs)
 	return wrap
 
 def ownership_required(func):
 	"""
-	A decorator to confirm authorization and redirect as needed.
-	Intended to be used directly after owner_filter.
+	A decorator to confirm authorization
+	and redirect as needed.
+
+	In order for this to work, the owner_filter decorator
+	must come before this. In addition, this
+	decorator requires that super_category,
+	category and post_entry is in the arguments.
 	"""
 	@wraps(func)
 	def wrap(*args, **kwargs):
-		if 'is_owner' in kwargs:
-			if kwargs['is_owner'] and 'super_category' in kwargs and 'category' in kwargs and 'post' in kwargs:
+		if (
+			'is_owner' in kwargs
+			and
+			kwargs['is_owner']
+			and
+			'super_category' in kwargs
+			and
+			'category' in kwargs
+			and
+			'post_entry' in kwargs
+			):
+				# is_owner is no longer needed
 				del kwargs['is_owner']
+				# all tests passed, proceed to page
 				return func(*args, **kwargs)
 		flash("[warning]You do not own this post")
-		print "Will REDIRECT " + login_session['current_url']
+		# test failed, redirect to last known page
 		return redirect(login_session['current_url'])
 	return wrap
+
+
+##########################################################
+"""
+OAUTH AND LOGIN PAGES
+"""
+##########################################################
 
 
 @app.route('/gregslist/login/')
@@ -213,7 +282,6 @@ def showLogin():
 	state = ''.join(random.choice(string.ascii_uppercase + string.digits)
 					for x in xrange(32))
 	login_session['state'] = state
-	# return "The current session state is %s" % login_session['state']
 	return render_template('login.html', STATE=state,
 							GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID,
 							FACEBOOK_APP_ID=FACEBOOK_APP_ID)
@@ -271,8 +339,8 @@ def gconnect():
 	stored_access_token = login_session.get('access_token')
 	stored_gplus_id = login_session.get('gplus_id')
 	if stored_access_token is not None and gplus_id == stored_gplus_id:
-		response = make_response(json.dumps('Current user is already connected.'),
-								 200)
+		response = make_response(json.dumps(
+				   'Current user is already connected.'), 200)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 
@@ -298,9 +366,10 @@ def gconnect():
 	if not user_id:
 		user_id = createUser(login_session)
 	login_session['user_id'] = user_id
-	flash("[success]you are now logged in as %s" % login_session['username'])
+	msg = "[success]you are now logged in as %s"
+	flash(msg % login_session['username'])
 	return render_template('login-success.html',
-							username=login_session['email'],
+							username=login_session['username'],
 							img_url=login_session['picture'])
 
 
@@ -316,8 +385,8 @@ def gdisconnect():
 			'Current user not connected.'), 401)
 		response.headers['Content-Type'] = 'application/json'
 		return response
-	url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session[
-		'access_token']
+	url = ('https://accounts.google.com/o/oauth2/revoke?token=%s'
+			% login_session['access_token'])
 	h = httplib2.Http()
 	result = h.request(url, 'GET')[0]
 	print 'result is '
@@ -351,7 +420,7 @@ def fbconnect():
 		'web']['app_id']
 	app_secret = json.loads(
 		open('fb_client_secrets.json', 'r').read())['web']['app_secret']
-	url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
+	url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % ( # NOQA
 		app_id, app_secret, access_token)
 	h = httplib2.Http()
 	result = h.request(url, 'GET')[1]
@@ -360,15 +429,19 @@ def fbconnect():
 	# Use token to get user info from API
 	userinfo_url = "https://graph.facebook.com/v2.8/me"
 	'''
-		Due to the formatting for the result from the server token exchange we have to
-		split the token first on commas and select the first index which gives us the key : value
-		for the server access token then we split it on colons to pull out the actual token value
-		and replace the remaining quotes with nothing so that it can be used directly in the graph
-		api calls
+		Due to the formatting for the result
+		from the server token exchange we have to
+		split the token first on commas and
+		select the first index which gives us the
+		key : value for the server access token
+		then we split it on colons to pull out
+		the actual token value and replace the
+		remaining quotes with nothing so that it
+		can be used directly in the graph api calls
 	'''
 	token = result.split(',')[0].split(':')[1].replace('"', '')
 
-	url = 'https://graph.facebook.com/v2.8/me?access_token=%s&fields=name,id,email' % token
+	url = 'https://graph.facebook.com/v2.8/me?access_token=%s&fields=name,id,email' % token # NOQA
 	h = httplib2.Http()
 	result = h.request(url, 'GET')[1]
 	# print "url sent for API access:%s"% url
@@ -384,7 +457,7 @@ def fbconnect():
 	login_session['access_token'] = token
 
 	# Get user picture
-	url = 'https://graph.facebook.com/v2.8/me/picture?access_token=%s&redirect=0&height=200&width=200' % token
+	url = 'https://graph.facebook.com/v2.8/me/picture?access_token=%s&redirect=0&height=200&width=200' % token # NOQA
 	h = httplib2.Http()
 	result = h.request(url, 'GET')[1]
 	data = json.loads(result)
@@ -411,7 +484,8 @@ def fbdisconnect():
 	facebook_id = login_session['facebook_id']
 	# The access token must me included to successfully logout
 	access_token = login_session['access_token']
-	url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id,access_token)
+	url = ('https://graph.facebook.com/%s/permissions?access_token=%s' %
+		  (facebook_id, access_token))
 	h = httplib2.Http()
 	result = h.request(url, 'DELETE')[1]
 	if result == '{"success":true}':
@@ -427,11 +501,23 @@ def fbdisconnect():
 		flash("[warning]Failed to revoke token for given user")
 		return redirect(url_for('mainPage'))
 
-# Show all posts
+
+##########################################################
+"""
+CRUD: CATEGORY AND POST PAGES
+ ^
+read only
+"""
+##########################################################
+
+
 @app.route('/')
 @app.route('/gregslist/')
 @add_entries_from_all_categories
 def mainPage(job_categories, stuff_categories, space_categories):
+	"""
+	A page with links to all Job, Stuff and Space categories
+	"""
 	login_session['current_url'] = request.url
 	super_categories = {"jobs" : job_categories,
 						"stuff" : stuff_categories,
@@ -443,6 +529,10 @@ def mainPage(job_categories, stuff_categories, space_categories):
 @app.route('/gregslist/JSON/')
 @add_entries_from_all_categories
 def mainJSON(job_categories, stuff_categories, space_categories):
+	"""
+	JSON of all categories contained in
+	Job, Stuff, and Space super-categories
+	"""
 	jobs = [entry.serialize for entry in job_categories]
 	stuff = [entry.serialize for entry in stuff_categories]
 	space = [entry.serialize for entry in space_categories]
@@ -453,7 +543,12 @@ def mainJSON(job_categories, stuff_categories, space_categories):
 @add_categories
 @add_specific_category
 @add_posts
-def showPosts(super_category, category, categories, category_entry, post_entries):
+def showPosts(super_category, category,
+			  categories, category_entry, post_entries):
+	"""
+	A page with links to all post
+	contained in a specific category
+	"""
 	return render_template('specific-category.html',
 							posts=post_entries,
 							category_entry=category_entry,
@@ -464,6 +559,12 @@ def showPosts(super_category, category, categories, category_entry, post_entries
 @add_specific_category
 @add_posts
 def postsJSON(super_category, category, category_entry, post_entries):
+	"""
+	Will display JSON that corresponds to the
+	URL path components: ex: /gregslist/stuff/boats/JSON
+	will return all posts contained in the boats
+	category of the stuff super-category
+	"""
 	return jsonify(Posts=[entry.serialize for entry in post_entries])
 
 
@@ -473,6 +574,12 @@ def postsJSON(super_category, category, category_entry, post_entries):
 @add_specific_post
 @owner_filter
 def showSpecificPost(super_category, post_id, category, post_entry, is_owner):
+	"""
+	Displays a specific post. The super_category
+	determines what data needs to be displayed
+	ie pay and hours for JobPosts or Street,
+	City, State, Zip for SpacePosts
+	"""
 	login_session['current_url'] = request.url
 	return render_template('specific-item.html',
 							post=post_entry,
@@ -483,34 +590,70 @@ def showSpecificPost(super_category, post_id, category, post_entry, is_owner):
 @app.route('/gregslist/<super_category>/<category>/post/<int:post_id>/JSON/')
 @add_specific_post
 def specificPostJSON(super_category, post_id, category, post_entry):
+	"""
+	Will display JSON that corresponds to the
+	specified post
+	"""
 	return jsonify(Post=post_entry.serialize)
 
-@app.route('/gregslist/<super_category>/<category>/delete/<int:post_id>/', methods=['GET', 'POST'])
+##########################################################
+"""
+CRUD: USER INPUT PAGES
+^ ^^
+create, update, delete
+"""
+##########################################################
+
+@app.route('/gregslist/<super_category>/<category>/delete/<int:post_id>/',
+			methods=['GET', 'POST'])
 @login_required
 @owner_filter
 @ownership_required
 def deletePost(super_category, category, post_id, post):
+	"""
+	A confirmation page for deleting a post
+	"""
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		session.delete(post)
 		flash('[info]"%s" has been deleted' % post.title)
 		session.commit()
-		return redirect(url_for('showPosts', super_category=super_category, category=category))
+		return redirect(url_for('showPosts',
+								 super_category=super_category,
+								 category=category))
 	else:
 		return render_template('delete-item.html', post=post)
 
-@app.route('/gregslist/<super_category>/<category>/edit/<int:post_id>/', methods=['GET', 'POST'])
+@app.route('/gregslist/<super_category>/<category>/edit/<int:post_id>/',
+			methods=['GET', 'POST'])
 @login_required
+@add_specific_post
 @owner_filter
 @ownership_required
 @add_specific_category
-def editPost(super_category, category, post_id, post, category_entry):
+def editPost(super_category, category, post_id, post_entry, category_entry):
+	"""
+	A page for editing a post
+	"""
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
-		updated_post = make_post_entry(super_category, request, category_entry)
+		"""
+		Note: technically since make_entry just
+		creates a new entry, the U in CRUD is not being
+		accomplished in a pure sense. However since Job,
+		Stuff and Space tables contain different items,
+		and make_entry can handle each accordingly, it seems
+		to make more sense to do it this way.
+		Plus make_entry is also used in createPost so we
+		avoid writing a lot of the same code twice.
+		"""
+		updated_post = make_entry(super_category, request, category_entry)
 		try:
-			session.delete(post)
+			# delete the existing entry
+			session.delete(post_entry)
+			# give the new entry the same id as the previous one
 			updated_post.id = post_id
+			# add the new one in place of the old one
 			session.add(updated_post)
 			session.commit()
 			msg = '[success]update succesful'
@@ -520,54 +663,72 @@ def editPost(super_category, category, post_id, post, category_entry):
 								     category=category,
 								     post_id=post_id))
 		except:
-			msg = '[warning]An unknown problem prevented "%s" from being updated'
+			msg = ('[warning]An unknown problem '
+				   'prevented "%s" from being updated')
 			flash(msg % request.form['title'])
 			return redirect(request.url)
 	else:
 		if super_category == "jobs":
-			params = {"pay" : post.pay, "hours" : post.hours}
+			params = {"pay" : post_entry.pay, "hours" : post_entry.hours}
 		if super_category == "stuff":
-			params = {"price" : post.price}
+			params = {"price" : post_entry.price}
 		if super_category == "space":
-			params = {"price" : post.price, "street" : post.street,
-					  "city" : post.city, "state" : post.state, "zip" : post.zip}
+			params = {"price" : post_entry.price, "street" : post_entry.street,
+					  "city" : post_entry.city, "state" : post_entry.state,
+					  "zip" : post_entry.zip}
 		return render_template('create-or-edit.html',
 								super_category=super_category,
-								title=post.title,
-								description=post.description,
+								title=post_entry.title,
+								description=post_entry.description,
 								params=params)
 
 @app.route('/gregslist/choose/category/', methods=['GET', 'POST'])
 @login_required
 def newPostSuperCategorySelect():
+	"""
+	A view displayed after user clicks 'post something!'.
+	It allows them to select which super-category
+	in which they want to post.
+	"""
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
 		if 'jobs' in request.form:
-			return redirect(url_for('newPostCategorySelect', super_category='jobs'))
+			return redirect(url_for('newPostCategorySelect',
+									 super_category='jobs'))
 		if 'stuff' in request.form:
-			return redirect(url_for('newPostCategorySelect', super_category='stuff'))
+			return redirect(url_for('newPostCategorySelect',
+									 super_category='stuff'))
 		if 'space' in request.form:
-			return redirect(url_for('newPostCategorySelect', super_category='space'))
+			return redirect(url_for('newPostCategorySelect',
+									 super_category='space'))
 	else:
 		return render_template('super-category-select.html')
 
-@app.route('/gregslist/<super_category>/select-category/', methods=['GET', 'POST'])
+
+@app.route('/gregslist/<super_category>/select-category/',
+			methods=['GET', 'POST'])
 @login_required
 @add_categories
 def newPostCategorySelect(super_category, categories):
+	"""
+	A view displayed after user selects the super-catetory.
+	Here they can select in which category they want they're
+	new post to appear
+	"""
 	login_session['current_url'] = request.url
 	return render_template('category-select.html',
 							super_category=super_category,
 							categories=categories,
 							link_func='newPostForm')
 
-@app.route('/gregslist/<super_category>/<category>/new/', methods=['GET', 'POST'])
+@app.route('/gregslist/<super_category>/<category>/new/',
+			methods=['GET', 'POST'])
 @login_required
 @add_specific_category
 def newPostForm(super_category, category, category_entry):
 	login_session['current_url'] = request.url
 	if request.method == 'POST':
-		post = make_post_entry(super_category, request, category_entry)
+		post = make_entry(super_category, request, category_entry)
 		try:
 			msg = '[success]"%s" successfully added'
 			flash(msg % request.form['title'])
@@ -575,10 +736,12 @@ def newPostForm(super_category, category, category_entry):
 			session.commit()
 			return redirect(url_for('mainPage'))
 		except:
-			msg = '[warning]An unknown problem prevented "%s" from being added'
+			msg = ('[warning]An unknown problem '
+				   'prevented "%s" from being added')
 			flash(msg % request.form['title'])
 			return redirect(request.url)
 	else:
+		# set the parameters to empty since this is a new post
 		if super_category == "jobs":
 			params = {"pay" : "", "hours" : ""}
 		if super_category == "stuff":
@@ -593,7 +756,15 @@ def newPostForm(super_category, category, category_entry):
 								params=params)
 
 
-def make_post_entry(super_category, request, category_entry):
+def make_entry(super_category, request, category_entry):
+	"""
+	Used by newPostForm and editPost to create a new
+	post based on the unique requirements of each
+	super-category. The function determines which
+	super-category is being requested then
+	creates a new entry, filling it
+	with data collected from the form.
+	"""
 	title =       request.form['title']
 	description = request.form['description']
 	user_id =     login_session['user_id']
@@ -630,8 +801,20 @@ def make_post_entry(super_category, request, category_entry):
 						 category_id=category_id,
 						 user_id=user_id)
 
+##########################################################
+"""
+HELPER FUNCTIONS
+"""
+##########################################################
+
 @app.context_processor
 def utility_processor():
+	"""
+	Make several useful functions directly
+	accesible by jinja2. That way we can call
+	them directly from within each template
+	and avoid cluttering up the view functions.
+	"""
 	def nav_bar():
 		return render_template('nav-bar.html')
 	def links_and_scripts():
@@ -661,6 +844,10 @@ def utility_processor():
 	def space_specific_items(post):
 		return render_template('space-specific-items.html', post=post)
 	def login_provider():
+		"""
+		used to set the logout link depending on
+		if we're logged in under google or facebook
+		"""
 		if 'provider' in login_session:
 			return login_session['provider']
 	return dict(render_flashed_message=flashed_message,
