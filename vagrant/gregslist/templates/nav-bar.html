@@ -7,11 +7,11 @@
         <ul class="nav navbar-nav navbar-right">
           {% with provider = login_provider() %}
           {% if provider == 'google' %}
-          <li><a href="{{ url_for('gdisconnect') }}"><span class="glyphicon glyphicon-log-out"></span> logout</a></li>
+          <li><a href="{{ url_for('login.gdisconnect') }}"><span class="glyphicon glyphicon-log-out"></span> logout</a></li>
           {% elif provider == 'facebook' %}
-          <li><a href="{{ url_for('fbdisconnect') }}"><span class="glyphicon glyphicon-log-out"></span> logout</a></li>
+          <li><a href="{{ url_for('login.fbdisconnect') }}"><span class="glyphicon glyphicon-log-out"></span> logout</a></li>
           {% else %}
-          <li><a href="{{ url_for('showLogin') }}"><span class="glyphicon glyphicon-log-in"></span> login</a></li>
+          <li><a href="{{ url_for('login.showLogin') }}"><span class="glyphicon glyphicon-log-in"></span> login</a></li>
           {% endif %}
           {% endwith %}
           <li><button class="btn btn-primary btn-sm navbar-btn add-btn">post something!</button></li>
