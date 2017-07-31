@@ -122,13 +122,15 @@ def deletePost(super_category, category, post_id, post_entry):
     """
     login_session['current_url'] = request.url
     if request.method == 'POST':
-        current_session = session.object_session(post_entry)
-        current_session.delete(post_entry)
-        flash('[info]"%s" has been deleted' % post_entry.title)
-        current_session.commit()
-        return redirect(url_for('showPosts',
-                                super_category=super_category,
-                                category=category))
+    	print request.form
+    	if "delete" in request.form:
+	        current_session = session.object_session(post_entry)
+	        current_session.delete(post_entry)
+	        flash('[info]"%s" has been deleted' % post_entry.title)
+	        current_session.commit()
+	        return redirect(url_for('showPosts',
+	                                super_category=super_category,
+	                                category=category))
     else:
         return render_template('delete-item.html', post=post_entry)
 

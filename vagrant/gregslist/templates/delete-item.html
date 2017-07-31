@@ -2,9 +2,7 @@
 {% block content %}
 <h2> Are you sure you want to delete "{{post.title}}"? </h2>
 <form method = 'post'>
-  <button type="submit" class="btn btn-danger" id="submit" type="submit">delete!</button>
-  <a href = '{{url_for('mainPage')}}'>
-    <button class="btn btn-default">cancel</button>
-  </a>
+  <button type="submit" class="btn btn-danger" id="submit" name="delete">Delete</button>
+  <a href="{{url_for('mainPage')}}" class="btn btn-default">Cancel</a>
 </form>
 {% endblock %}
