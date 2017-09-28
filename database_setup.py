@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
-class A_User(Base):
+class User(Base):
   """a table for storing information about each user"""
   __tablename__ = 'a_user'
   id = Column(Integer, primary_key=True)
