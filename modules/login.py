@@ -30,7 +30,7 @@ the Udacity examples with some minor modifications
 
 # https://console.developers.google.com/apis/credentials?project=greglist-174419
 GOOGLE_CLIENT_ID = json.loads(
-    open('client_secret.json', 'r').read())['web']['client_id']
+    open('/var/www/html/client_secret.json', 'r').read())['web']['client_id']
 
 # https://developers.facebook.com/apps/555177401540603/settings/
 FACEBOOK_APP_ID = json.loads(
