@@ -7,7 +7,7 @@ Base = declarative_base()
 
 class User(Base):
   """a table for storing information about each user"""
-  __tablename__ = 'user'
+  __tablename__ = 'a_user'
   id = Column(Integer, primary_key=True)
   name = Column(String(250))
   email = Column(String(250))
