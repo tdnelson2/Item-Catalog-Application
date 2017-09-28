@@ -27,7 +27,7 @@ class JobCategory(Base):
         return {
             'id' : self.id,
             'name' : self.name,
-            'user_id' : self.user_id
+            'user_id' : self.a_user_id
         }
 
 
@@ -44,7 +44,7 @@ class StuffCategory(Base):
         return {
             'id' : self.id,
             'name' : self.name,
-            'user_id' : self.user_id
+            'user_id' : self.a_user_id
         }
 
 
@@ -61,7 +61,7 @@ class SpaceCategory(Base):
         return {
             'id' : self.id,
             'name' : self.name,
-            'user_id' : self.user_id
+            'user_id' : self.a_user_id
         }
 
 class JobPost(Base):
@@ -86,7 +86,7 @@ class JobPost(Base):
             'pay' : self.pay,
             'hours' : self.hours,
             'category_id' : self.category_id,
-            'user_id' : self.user_id
+            'user_id' : self.a_user_id
         }
 
 class StuffPost(Base):
@@ -109,7 +109,7 @@ class StuffPost(Base):
             'description' : self.description,
             'price' : self.price,
             'category_id' : self.category_id,
-            'user_id' : self.user_id
+            'user_id' : self.a_user_id
         }
 
 class SpacePost(Base):
@@ -140,7 +140,7 @@ class SpacePost(Base):
             'state' : self.state,
             'zip' : self.zip,
             'category_id' : self.category_id,
-            'user_id' : self.user_id
+            'user_id' : self.a_user_id
         }
 
 
