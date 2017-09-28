@@ -125,7 +125,7 @@ class SpacePost(Base):
     zip = Column(String(10))
     category_id = Column(Integer,ForeignKey('space_category.id'))
     category = relationship(SpaceCategory)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('a_user.id'))
     user = relationship(User)
 
     @property
