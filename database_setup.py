@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
-class User(Base):
+class A_User(Base):
   """a table for storing information about each user"""
   __tablename__ = 'a_user'
   id = Column(Integer, primary_key=True)
@@ -19,7 +19,7 @@ class JobCategory(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('a_user.id'))
     user = relationship(User)
 
     @property
@@ -36,7 +36,7 @@ class StuffCategory(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('a_user.id'))
     user = relationship(User)
 
     @property
@@ -53,7 +53,7 @@ class SpaceCategory(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('a_user.id'))
     user = relationship(User)
 
     @property
@@ -74,7 +74,7 @@ class JobPost(Base):
     hours = Column(String(5))
     category_id = Column(Integer, ForeignKey('job_category.id'))
     category = relationship(JobCategory)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('a_user.id'))
     user = relationship(User)
 
     @property
@@ -98,7 +98,7 @@ class StuffPost(Base):
     price = Column(String(10))
     category_id = Column(Integer,ForeignKey('stuff_category.id'))
     category = relationship(StuffCategory)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('a_user.id'))
     user = relationship(User)
 
     @property
