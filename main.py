@@ -41,6 +41,8 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+app.secret_key = "super secret key"
+
 app = Flask(__name__)
 
 app.register_blueprint(login)
@@ -428,7 +430,4 @@ def utility_processor():
 
 
 if __name__ == '__main__':
-    app.secret_key = 'super_secret_key'
-    app.config['SESSION_TYPE'] = 'filesystem'
-    login_session.init_app(app)
     app.run()
