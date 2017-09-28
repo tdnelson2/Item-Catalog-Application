@@ -34,7 +34,7 @@ GOOGLE_CLIENT_ID = json.loads(
 
 # https://developers.facebook.com/apps/555177401540603/settings/
 FACEBOOK_APP_ID = json.loads(
-    open('fb_client_secrets.json', 'r').read())['web']['app_id']
+    open('/var/www/html/fb_client_secrets.json', 'r').read())['web']['app_id']
 
 
 
