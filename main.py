@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('/var/www/html') 
+sys.path.append('/var/www/html')
 
 from flask import (Flask,
                    render_template,
@@ -36,7 +36,7 @@ from modules.gregslist_decorators import (get_post_table,
 
 
 # Connect to Database and create database session
-engine = create_engine('postgresql://timnelson:password@localhost/mydb')
+engine = create_engine('postgresql://ubuntu:password@localhost/mydb')
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
