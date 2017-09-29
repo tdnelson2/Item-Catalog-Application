@@ -16,6 +16,8 @@ engine = create_engine('postgresql://ubuntu:password@localhost/mydb')
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 db_session = DBSession()
+path_google_secret = '/var/www/secrets/client_secret.json'
+path_fb_secret = '/var/www/secrets/fb_client_secrets.json'
 
 login = Blueprint('login', 'login', url_prefix='/gregslist')
 
@@ -30,11 +32,11 @@ the Udacity examples with some minor modifications
 
 # https://console.developers.google.com/apis/credentials?project=greglist-174419
 GOOGLE_CLIENT_ID = json.loads(
-    open('/var/www/html/client_secret.json', 'r').read())['web']['client_id']
+    open(path_google_secret, 'r').read())['web']['client_id']
 
 # https://developers.facebook.com/apps/555177401540603/settings/
 FACEBOOK_APP_ID = json.loads(
-    open('/var/www/html/fb_client_secrets.json', 'r').read())['web']['app_id']
+    open(path_fb_secret, 'r').read())['web']['app_id']
 
 
 
@@ -60,7 +62,7 @@ def gconnect():
 
     try:
         # Upgrade the authorization code into a credentials object
-        oauth_flow = flow_from_clientsecrets('/var/www/html/client_secret.json', scope='')
+        oauth_flow = flow_from_clientsecrets(path_google_secret, scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
     except FlowExchangeError:
@@ -176,10 +178,10 @@ def fbconnect():
     access_token = request.data
     print "access token received %s " % access_token
 
-    app_id = json.loads(open('/var/www/html/fb_client_secrets.json', 'r').read())[
+    app_id = json.loads(open(path_fb_secret, 'r').read())[
         'web']['app_id']
     app_secret = json.loads(
-        open('/var/www/html/fb_client_secrets.json', 'r').read())['web']['app_secret']
+        open(path_fb_secret, 'r').read())['web']['app_secret']
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (  # NOQA
             app_id, app_secret, access_token)
     h = httplib2.Http()
