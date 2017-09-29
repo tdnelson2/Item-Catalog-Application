@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from database_setup import Base, User
 
 # Connect to Database and create database session
-engine = create_engine('postgresql://ubuntu:password@localhost/mydb')
+engine = create_engine('postgresql://student:password@localhost/mydb')
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 db_session = DBSession()

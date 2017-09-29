@@ -145,7 +145,7 @@ class SpacePost(Base):
 
 
 
-engine = create_engine('postgresql://ubuntu:password@localhost/mydb')
+engine = create_engine('postgresql://student:password@localhost/mydb')
 
 
 Base.metadata.create_all(engine)
