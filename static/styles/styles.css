@@ -7,6 +7,10 @@ body {
     margin: auto;
 }
 
+.plain-link, .plain-link:hover, .plain-link:focus {
+    color: #222222;
+}
+
 .list-group-item {
     font-size: 15pt;
 }
